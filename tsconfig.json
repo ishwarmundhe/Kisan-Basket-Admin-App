@@ -5,7 +5,8 @@
     "**/*.tsx",
     "nativewind-env.d.ts",
     "App.jsx",
-    "src/lib/utils.js"
+    "src/lib/utils.js",
+    "src/axiosServices/axiosInstance.js"
   ],
   "exclude": [
     "**/node_modules",
