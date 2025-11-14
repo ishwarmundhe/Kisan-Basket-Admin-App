@@ -25,12 +25,12 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Modal, Portal, PaperProvider } from "react-native-paper";
 import { toast } from "sonner-native";
-import ShimmerPlaceholder from "../../../components/custom/shimmerLoaderPlaceholder";
+import ShimmerPlaceholder from "../../../components/shimmerLoaderPlaceholder";
 // Components
-import CustomerList from "../../../components/custom/customerList";
-import BottomSheetProductListContent from "../../../components/custom/bottomSheetProductList";
-import BottomSheet from "../../../components/custom/CustomBottomSheet";
-import ErrorMessage from "../../../components/custom/errorMessage";
+import CustomerList from "../../../components/customerList";
+import BottomSheetProductListContent from "../../../components/bottomSheetProductList";
+import BottomSheet from "../../../components/CustomBottomSheet";
+import ErrorMessage from "../../../components/errorMessage";
 import { DataTable } from "react-native-paper";
 
 // GraphQL

@@ -20,7 +20,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 
 import ShimmerPlaceholder from "./shimmerLoaderPlaceholder";
 import ErrorMessage from "./errorMessage";
-import { useTheme } from "../../constant/ThemeContext";
+import { useTheme } from "../constant/ThemeContext";
 
 const useStyle = (theme) => {
   return useMemo(

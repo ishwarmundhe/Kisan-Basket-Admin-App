@@ -1,16 +1,5 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useEffect,
-} from "react";
-import {
-  StyleSheet,
-  View,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import React, { forwardRef, useImperativeHandle, useEffect } from "react";
+import { StyleSheet, View, Dimensions } from "react-native";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
@@ -18,9 +7,9 @@ import Animated, {
   withTiming,
   withSpring,
 } from "react-native-reanimated";
-import { useTheme } from "../../constant/ThemeContext";
+import { useTheme } from "../constant/ThemeContext";
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const ReusableBottomSheet = forwardRef(({ children, height = "40%" }, ref) => {
   const { theme } = useTheme();
@@ -32,6 +21,7 @@ const ReusableBottomSheet = forwardRef(({ children, height = "40%" }, ref) => {
 
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
+  /** ---- Public Methods ---- **/
   const open = () => {
     translateY.value = withSpring(SCREEN_HEIGHT - sheetHeight, {
       damping: 15,
@@ -48,6 +38,7 @@ const ReusableBottomSheet = forwardRef(({ children, height = "40%" }, ref) => {
     close,
   }));
 
+  /** ---- Gesture to drag down ---- **/
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       if (event.translationY > 0) {
@@ -55,47 +46,47 @@ const ReusableBottomSheet = forwardRef(({ children, height = "40%" }, ref) => {
       }
     })
     .onEnd((event) => {
-      if (event.translationY > 100) {
-        close();
-      } else {
-        open();
-      }
+      if (event.translationY > 100) close();
+      else open();
     });
 
+  /** ---- Animated style ---- **/
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
   useEffect(() => {
+    // Hide sheet initially
     translateY.value = SCREEN_HEIGHT;
   }, []);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.wrapper}
-    >
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <GestureDetector gesture={panGesture}>
         <Animated.View
           style={[
             styles.container,
-            { backgroundColor: theme.primary, height: sheetHeight },
+            {
+              backgroundColor: theme.primary,
+              height: sheetHeight,
+            },
             animatedStyle,
           ]}
         >
           <View style={styles.handle} />
 
+          {/* Content */}
           <View style={styles.content}>{children}</View>
         </Animated.View>
       </GestureDetector>
-    </KeyboardAvoidingView>
+    </View>
   );
 });
 
+export default ReusableBottomSheet;
+
+/** ---- Styles ---- **/
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-  },
   container: {
     width: "100%",
     position: "absolute",
@@ -103,6 +94,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     paddingTop: 12,
+    zIndex: 999,
+    elevation: 999,
   },
   handle: {
     width: 40,
@@ -117,5 +110,3 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 });
-
-export default ReusableBottomSheet;

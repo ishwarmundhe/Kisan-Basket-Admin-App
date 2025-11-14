@@ -1,5 +1,5 @@
 // ProfileScreen.jsx
-import React, { useContext, useEffect, useState, useRef, useMemo } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import ScreenLayout from "../ScreenLayout";
 import { localStore } from "../../../localStore/LocalStore";
@@ -14,7 +14,7 @@ import {
 } from "react-native-paper";
 import { useTheme } from "../../../constant/ThemeContext";
 import ThemeSettings from "../../theme/ThemeSetting";
-import ReusableBottomSheet from "../../../components/custom/bottomSheet";
+// import ReusableBottomSheet from "../../../components/bottomSheet"; // No longer needed here
 
 // Styles
 const useStyle = (theme) => {
@@ -53,10 +53,7 @@ const useStyle = (theme) => {
       borderWidth: 1,
     },
 
-    sheetContent: {
-      padding: 20,
-      justifyContent: "center",
-    },
+    // sheetContent removed as bottom sheet is no longer used
   });
 };
 
@@ -64,8 +61,7 @@ const ProfileScreen = () => {
   const { theme } = useTheme();
   const styles = useStyle(theme);
 
-  const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ["25%", "50%"], []);
+  // Removed bottomSheetRef and snapPoints
 
   const { logout } = useContext(AuthContext);
 
@@ -76,6 +72,7 @@ const ProfileScreen = () => {
   });
 
   const [visible, setVisible] = useState(false);
+  const showDialog = () => setVisible(true); // Renamed for clarity
   const hideDialog = () => setVisible(false);
 
   useEffect(() => {
@@ -94,18 +91,12 @@ const ProfileScreen = () => {
     fetchLocalUser();
   }, []);
 
-  const handleOpenSheet = () => {
-    bottomSheetRef.current?.expand();
-  };
-
-  const handleCloseSheet = () => {
-    bottomSheetRef.current?.close();
-  };
+  // Removed handleOpenSheet and handleCloseSheet
 
   const logOutHandler = async () => {
     await logout();
     setVisible(false);
-    bottomSheetRef.current?.close();
+    // No longer need to close bottom sheet
   };
 
   return (
@@ -148,7 +139,7 @@ const ProfileScreen = () => {
 
             <TouchableOpacity
               style={styles.logoutButton}
-              onPress={handleOpenSheet}
+              onPress={showDialog} // Changed to open dialog directly
             >
               <Text style={styles.logoutText}>Log Out</Text>
             </TouchableOpacity>
@@ -157,42 +148,7 @@ const ProfileScreen = () => {
 
         <ThemeSettings />
 
-        {/* Reusable Bottom Sheet */}
-        <ReusableBottomSheet ref={bottomSheetRef} snapPoints={snapPoints}>
-          <View style={styles.sheetContent}>
-            <Text
-              style={{
-                fontSize: 18,
-                marginBottom: 20,
-                textAlign: "center",
-                color: theme.text,
-              }}
-            >
-              Confirm logout?
-            </Text>
-
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-evenly",
-                width: "100%",
-              }}
-            >
-              <Button
-                mode="contained"
-                onPress={() => setVisible(true)}
-                style={{ backgroundColor: "#f44336" }}
-                labelStyle={{ color: "#fff", fontWeight: "bold" }}
-              >
-                Yes
-              </Button>
-
-              <Button mode="outlined" onPress={handleCloseSheet}>
-                Cancel
-              </Button>
-            </View>
-          </View>
-        </ReusableBottomSheet>
+        {/* Reusable Bottom Sheet removed */}
       </ScreenLayout>
     </PaperProvider>
   );

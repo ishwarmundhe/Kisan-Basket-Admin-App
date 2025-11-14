@@ -14,7 +14,7 @@ import {
 } from "react-native";
 
 import Icon from "react-native-vector-icons/Feather";
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { TOKEN_AUTH } from "../../graphql/Mutation";
 import { toast } from "sonner-native";
 import ScreenLayout from "../app/ScreenLayout";

@@ -18,15 +18,15 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 
 import { useMutation, useLazyQuery } from "@apollo/client/react";
 
-import { ORDER_LINE_ADD } from "../../graphql/Mutation";
-import { ORDER_DETAILS_WITH_METADATA } from "../../graphql/Query";
+import { ORDER_LINE_ADD } from "../graphql/Mutation";
+import { ORDER_DETAILS_WITH_METADATA } from "../graphql/Query";
 import { useState } from "react";
 import { toast } from "sonner-native";
-import ScreenLayout from "../../screens/app/ScreenLayout";
+import ScreenLayout from "../screens/app/ScreenLayout";
 import { debounce } from "lodash";
-import { colors } from "../../constant/Colors";
+import { colors } from "../constant/Colors";
 // import Voice from "@react-native-voice/voice";
-import { useTheme } from "../../constant/ThemeContext";
+import { useTheme } from "../constant/ThemeContext";
 
 const userStyle = (theme) => {
   return useMemo(() => {

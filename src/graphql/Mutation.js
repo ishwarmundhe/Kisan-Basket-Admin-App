@@ -292,106 +292,110 @@ export const ORDER_LINE_DELETE = gql`
   }
 `;
 export const ORDER_DRAFT_CANCEL = gql`
-mutation OrderDraftCancel($id: ID!) {
-  draftOrderDelete(id: $id) {
-    errors {
-      field
-      code
-      message
-      variants
-    }
-    order {
-      canFinalize
-      created
-      id
-      lines {
-        productName
-        quantity
-        variant {
-          id
-        }
-        variantName
+  mutation OrderDraftCancel($id: ID!) {
+    draftOrderDelete(id: $id) {
+      errors {
+        field
+        code
+        message
+        variants
       }
-    }
-  }
-}`
-export const CONFIRM_ORDER_MUTATION = gql`
-mutation OrderConfirm($id: ID!) {
-  orderConfirm(id: $id) {
-    errors {
-      code
-      field
-      message
-      orderLines
-    }
-    order {
-      created
-      lines {
+      order {
+        canFinalize
+        created
         id
-        productName
+        lines {
+          productName
+          quantity
+          variant {
+            id
+          }
+          variantName
+        }
       }
-      status
     }
   }
-}`
+`;
+export const CONFIRM_ORDER_MUTATION = gql`
+  mutation OrderConfirm($id: ID!) {
+    orderConfirm(id: $id) {
+      errors {
+        code
+        field
+        message
+        orderLines
+      }
+      order {
+        created
+        lines {
+          id
+          productName
+        }
+        status
+      }
+    }
+  }
+`;
 export const GENERATE_INVOICE = gql`
-mutation InvoiceRequest($orderId: ID!) {
-  invoiceRequest(orderId: $orderId) {
-    errors {
-      code
-      field
-      message
-    }
-    invoice {
-      createdAt
-      id
-      number
-      status
-      url
-    }
-    order {
-      id
+  mutation InvoiceRequest($orderId: ID!) {
+    invoiceRequest(orderId: $orderId) {
+      errors {
+        code
+        field
+        message
+      }
+      invoice {
+        createdAt
+        id
+        number
+        status
+        url
+      }
+      order {
+        id
+      }
     }
   }
-}`
+`;
 
 export const UPDATE_CUSTOMER_UPDATE = gql`
-mutation UpdateCustomer($id:ID! $input:AddressInput!) {
-  addressUpdate(id: $id, input: $input) {
-    errors {
-      message
-      field
-      code
-    }
-    address {
-      city
-      cityArea
-      companyName
-      countryArea
-      firstName
-      id
-      lastName
-      phone
-      streetAddress1
-      streetAddress2
+  mutation UpdateCustomer($id: ID!, $input: AddressInput!) {
+    addressUpdate(id: $id, input: $input) {
+      errors {
+        message
+        field
+        code
+      }
+      address {
+        city
+        cityArea
+        companyName
+        countryArea
+        firstName
+        id
+        lastName
+        phone
+        streetAddress1
+        streetAddress2
+      }
     }
   }
-}`
+`;
 
 export const UPDATE_CUSTOMER_INFO = gql`
-mutation UpdateCustomer($id: ID!, $input: CustomerInput!) {
-  customerUpdate(id: $id, input: $input) {
-    errors {
-      field
-      code
-      message
-    }
-    user {
-      email
-      firstName
-      lastName
-      phoneNumber
+  mutation UpdateCustomer($id: ID!, $input: CustomerInput!) {
+    customerUpdate(id: $id, input: $input) {
+      errors {
+        field
+        code
+        message
+      }
+      user {
+        email
+        firstName
+        lastName
+        phoneNumber
+      }
     }
   }
-}
-`
+`;

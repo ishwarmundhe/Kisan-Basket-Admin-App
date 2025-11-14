@@ -18,7 +18,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import ScreenLayout from "../ScreenLayout";
 import { colors } from "../../../constant/Colors";
-import ErrorMessage from "../../../components/custom/errorMessage";
+import ErrorMessage from "../../../components/errorMessage";
 import { useLazyQuery, useQuery } from "@apollo/client/react";
 import { useTheme } from "../../../constant/ThemeContext";
 

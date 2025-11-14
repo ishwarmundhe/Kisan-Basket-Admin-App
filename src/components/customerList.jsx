@@ -12,18 +12,18 @@ import {
 import { useLazyQuery, useMutation } from "@apollo/client/react";
 import { toast } from "sonner-native";
 import { debounce } from "lodash";
-import ScreenLayout from "../../screens/app/ScreenLayout";
+import ScreenLayout from "../screens/app/ScreenLayout";
 import {
   SEARCH_CUSTOMER_QUERY,
   GET_SHIPPING_METHODS,
   CUSTOMER_ADDRESSES,
-} from "../../graphql/Query";
+} from "../graphql/Query";
 import {
   SHIPPING_METHOD_UPDATE,
   ORDER_DRAFT_UPDATE,
-} from "../../graphql/Mutation";
-import { colors } from "../../constant/Colors";
-import { useTheme } from "../../constant/ThemeContext";
+} from "../graphql/Mutation";
+import { colors } from "../constant/Colors";
+import { useTheme } from "../constant/ThemeContext";
 const useStyle = (theme) => {
   return useMemo(() => {
     return StyleSheet.create(

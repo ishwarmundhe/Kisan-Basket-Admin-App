@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import Header from "../../../components/custom/header";
+import Header from "../../../components/header";
 import { SEARCH_CUSTOMER_QUERY } from "../../../graphql/Query";
 import { useLazyQuery } from "@apollo/client/react";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner-native";
-import ListTable from "../../../components/custom/table";
+import ListTable from "../../../components/table";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { colors } from "../../../constant/Colors";
 import ScreenLayout from "../ScreenLayout";
