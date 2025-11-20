@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 import { enableScreens } from "react-native-screens";
+import "./global.css";
 
 // Call enableScreens() immediately after import, before any components
 enableScreens();
@@ -18,6 +19,8 @@ import RNBootSplash from "react-native-bootsplash";
 import localStore from "./src/utils/localStore";
 import ErrorBoundary from "./src/errorBoundry/ErrorBoundry";
 import { ApolloProvider } from "@apollo/client/react";
+import { Provider } from "react-redux";
+import { store } from "./src/redux/store";
 
 const App = () => {
   const [appIsReady, setAppIsReady] = useState(false);
@@ -64,15 +67,17 @@ const App = () => {
             backgroundColor="transparent"
           />
           <ApolloProvider client={client}>
-            <ThemeProvider initialTheme={themeFromStorage}>
-              <AuthProvider>
-                <KeyboardProvider>
-                  <ErrorBoundary>
-                    <Navigation />
-                  </ErrorBoundary>
-                </KeyboardProvider>
-              </AuthProvider>
-            </ThemeProvider>
+            <Provider store={store}>
+              <ThemeProvider initialTheme={themeFromStorage}>
+                <AuthProvider>
+                  <KeyboardProvider>
+                    <ErrorBoundary>
+                      <Navigation />
+                    </ErrorBoundary>
+                  </KeyboardProvider>
+                </AuthProvider>
+              </ThemeProvider>
+            </Provider>
           </ApolloProvider>
         </View>
       </SafeAreaProvider>

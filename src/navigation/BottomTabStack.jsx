@@ -19,7 +19,7 @@ const BottomTabs = () => {
         headerTintColor: "#fff",
         tabBarStyle: {
           backgroundColor: theme.primary,
-          paddingBottom:10
+          paddingBottom: 10,
         },
         tabBarActiveTintColor: "#FFFFFF",
         tabBarInactiveTintColor: "#C8E6C9",

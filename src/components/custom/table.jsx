@@ -18,9 +18,9 @@ import {
 } from "react-native-paper";
 import Icon from "react-native-vector-icons/Ionicons";
 
-import ShimmerPlaceholder from "./custom/shimmerLoaderPlaceholder";
-import ErrorMessage from "./custom/errorMessage";
-import { useTheme } from "../constant/ThemeContext";
+import ShimmerPlaceholder from "./shimmerLoaderPlaceholder";
+import ErrorMessage from "./errorMessage";
+import { useTheme } from "../../constant/ThemeContext";
 
 const useStyle = (theme) => {
   return useMemo(

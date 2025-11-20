@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text } from "react-native";
-import { useTheme } from "../constant/ThemeContext";
+import { useTheme } from "../../constant/ThemeContext";
 import { useMemo } from "react";
 const useStyle = (theme) => {
   return useMemo(() => {

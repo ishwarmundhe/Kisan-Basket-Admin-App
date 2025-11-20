@@ -14,7 +14,7 @@ import {
 
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../constant/ThemeContext";
+import { useTheme } from "../../constant/ThemeContext";
 
 const useStyle = (theme) => {
   return useMemo(() => {

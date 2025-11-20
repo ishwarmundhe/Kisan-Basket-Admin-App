@@ -2,7 +2,7 @@
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet, Animated, Dimensions } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
-import { useTheme } from "../constant/ThemeContext";
+import { useTheme } from "../../constant/ThemeContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 

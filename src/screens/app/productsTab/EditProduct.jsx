@@ -1,7 +1,7 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import ProductVariantsScreen from "../../../components/table";
-import Header from "../../../components/header";
+import ProductVariantsScreen from "../../../components/custom/table";
+import Header from "../../../components/custom/header";
 
 const EditProduct = ({ navigation }) => {
   return (
