@@ -1,4 +1,3 @@
-// ProfileScreen.jsx
 import React, { useContext, useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import ScreenLayout from "../ScreenLayout";
@@ -10,59 +9,95 @@ import {
   Dialog,
   Portal,
   PaperProvider,
-  Card,
+  Divider,
+  Avatar,
 } from "react-native-paper";
 import { useTheme } from "../../../constant/ThemeContext";
 import ThemeSettings from "../../theme/ThemeSetting";
-// import ReusableBottomSheet from "../../../components/bottomSheet"; // No longer needed here
 
-// Styles
 const useStyle = (theme) => {
   return StyleSheet.create({
-    container: { flex: 1 },
-
-    name: {
-      fontSize: 22,
-      fontWeight: "600",
-      color: theme.text,
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
     },
-
-    email: {
-      fontSize: 16,
-      color: theme.text,
-      marginBottom: 24,
+    headerSection: {
+      alignItems: "center",
+      paddingVertical: 32,
+      backgroundColor: theme.background,
     },
-
-    logoutButton: {
-      backgroundColor: theme.logOutBackground,
-      paddingHorizontal: 24,
-      paddingVertical: 12,
-      borderRadius: 24,
-    },
-
-    logoutText: {
-      color: theme.text,
-      fontWeight: "600",
-      fontSize: 16,
-    },
-
-    card: {
-      paddingVertical: 15,
+    avatarContainer: {
       backgroundColor: theme.primary,
-      borderColor: theme.border,
+      marginBottom: 16,
       borderWidth: 1,
+      borderColor: theme.border,
     },
-
-    // sheetContent removed as bottom sheet is no longer used
+    avatarLabel: {
+      color: theme.text,
+      fontSize: 24,
+      fontWeight: "600",
+    },
+    name: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: theme.text,
+      letterSpacing: 0.5,
+    },
+    email: {
+      fontSize: 14,
+      color: theme.secondary,
+      marginTop: 4,
+    },
+    section: {
+      marginTop: 20,
+      paddingHorizontal: 16,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.secondary,
+      marginBottom: 8,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+    },
+    card: {
+      backgroundColor: theme.cardBackground,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.border,
+      overflow: "hidden",
+    },
+    logoutButton: {
+      marginHorizontal: 16,
+      marginVertical: 24,
+      backgroundColor: theme.logOutBackground + "20", // 20% opacity of red
+      paddingVertical: 14,
+      borderRadius: 12,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.logOutBackground,
+    },
+    logoutText: {
+      color: theme.logOutBackground,
+      fontWeight: "600",
+      fontSize: 16,
+    },
+    dialog: {
+      backgroundColor: theme.cardBackground,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 12,
+    },
+    dialogText: {
+      color: theme.text,
+      fontSize: 16,
+    },
   });
 };
 
 const ProfileScreen = () => {
   const { theme } = useTheme();
   const styles = useStyle(theme);
-
-  // Removed bottomSheetRef and snapPoints
-
   const { logout } = useContext(AuthContext);
 
   const [userData, setUserData] = useState({
@@ -72,83 +107,92 @@ const ProfileScreen = () => {
   });
 
   const [visible, setVisible] = useState(false);
-  const showDialog = () => setVisible(true); // Renamed for clarity
+  const showDialog = () => setVisible(true);
   const hideDialog = () => setVisible(false);
 
   useEffect(() => {
     const fetchLocalUser = async () => {
       try {
         const user = await localStore.getUserInfo();
-        setUserData({
-          firstName: user?.firstName,
-          lastName: user?.lastName,
-          email: user?.email,
-        });
+        if (user) {
+          setUserData({
+            firstName: user.firstName || "Guest",
+            lastName: user.lastName || "",
+            email: user.email || "No email",
+          });
+        }
       } catch (err) {
-        toast.error("Error getting local store", err);
+        toast.error("Error getting local store");
       }
     };
     fetchLocalUser();
   }, []);
 
-  // Removed handleOpenSheet and handleCloseSheet
-
   const logOutHandler = async () => {
+    hideDialog();
     await logout();
-    setVisible(false);
-    // No longer need to close bottom sheet
+  };
+
+  // Get Initials for Avatar
+  const getInitials = () => {
+    const f = userData.firstName ? userData.firstName[0] : "";
+    const l = userData.lastName ? userData.lastName[0] : "";
+    return (f + l).toUpperCase();
   };
 
   return (
     <PaperProvider>
       <Portal>
-        {/* Logout Dialog */}
-        <Dialog
-          visible={visible}
-          onDismiss={hideDialog}
-          style={{
-            backgroundColor: theme.primary,
-            borderWidth: 1,
-            borderColor: theme.border,
-          }}
-        >
+        <Dialog visible={visible} onDismiss={hideDialog} style={styles.dialog}>
+          <Dialog.Title style={{ color: theme.text }}>Log Out</Dialog.Title>
           <Dialog.Content>
-            <Text style={{ color: theme.text, fontSize: 16 }}>
-              Are you sure you want to LogOut?
+            <Text style={styles.dialogText}>
+              Are you sure you want to log out of your account?
             </Text>
           </Dialog.Content>
 
           <Dialog.Actions>
-            <Button onPress={hideDialog} textColor={theme.text}>
-              No
+            <Button onPress={hideDialog} textColor={theme.secondary}>
+              Cancel
             </Button>
-            <Button onPress={logOutHandler} textColor={theme.text}>
-              Yes
+            <Button onPress={logOutHandler} textColor={theme.error}>
+              Log Out
             </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
       <ScreenLayout style={styles.container}>
-        <Card style={styles.card}>
-          <View style={{ alignItems: "center" }}>
-            <Text style={styles.name}>
-              {userData.firstName} {userData.lastName}
-            </Text>
-            <Text style={styles.email}>{userData.email}</Text>
+        {/* 1. Header with Avatar */}
+        <View style={styles.headerSection}>
+          <Avatar.Text
+            size={80}
+            label={getInitials()}
+            style={styles.avatarContainer}
+            labelStyle={styles.avatarLabel}
+            color={theme.text}
+          />
+          <Text style={styles.name}>
+            {userData.firstName} {userData.lastName}
+          </Text>
+          <Text style={styles.email}>{userData.email}</Text>
+        </View>
 
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={showDialog} // Changed to open dialog directly
-            >
-              <Text style={styles.logoutText}>Log Out</Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
+        {/* 2. Appearance Section */}
+       
 
-        <ThemeSettings />
-
-        {/* Reusable Bottom Sheet removed */}
+        {/* 3. Account Actions */}
+        <View
+          style={{ flex: 1, justifyContent: "flex-end", paddingBottom: 20 }}
+        >
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={showDialog}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.logoutText}>Log Out</Text>
+          </TouchableOpacity>
+        </View>
       </ScreenLayout>
     </PaperProvider>
   );

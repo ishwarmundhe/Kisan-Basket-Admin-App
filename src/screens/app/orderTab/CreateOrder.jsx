@@ -9,29 +9,26 @@ import React, {
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
   TextInput,
-  Dimensions,
   BackHandler,
-  // SafeAreaView,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { useMutation, useQuery, useLazyQuery } from "@apollo/client/react";
 import Icon from "react-native-vector-icons/Ionicons";
-import Ionicons from "react-native-vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Modal, Portal, PaperProvider } from "react-native-paper";
 import { toast } from "sonner-native";
 import ShimmerPlaceholder from "../../../components/custom/shimmerLoaderPlaceholder";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 // Components
 import CustomerList from "../../../components/custom/customerList";
 import BottomSheetProductListContent from "../../../components/custom/bottomSheetProductList";
 import BottomSheet from "../../../components/custom/CustomBottomSheet";
 import ErrorMessage from "../../../components/custom/errorMessage";
-import { DataTable } from "react-native-paper";
+import OrderTable from "./component/OrderTable";
 
 // GraphQL
 import {
@@ -48,29 +45,16 @@ import {
 // Services & Context
 import { AuthContext } from "../../../constant/AuthProvider";
 import { GetOrderSlots } from "../../../axiosServices/services";
-import { colors } from "../../../constant/Colors";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../constant/ThemeContext";
 import { useStyle } from "./component/UseStyle";
-// Constants
-import OrderTable from "./component/OrderTable";
-
-const TABLE_COLUMNS = [
-  { key: "sno", label: "S/No", width: 20 },
-  { key: "product", label: "Product", width: 120 },
-  { key: "variant", label: "Variant", width: 120 },
-  { key: "quantity", label: "Quantity", width: 120 },
-  { key: "price", label: "Price", width: 120 },
-  { key: "total", label: "Total", width: 120 },
-  { key: "delete", label: "Delete", width: 120 },
-];
 
 export default function OrderSummaryScreen({ navigation, route }) {
   const { theme } = useTheme();
+  const styles = useStyle(theme);
+
   // Context and route params
-  const { token } = useContext(AuthContext);
+  const { token, setGlobalRefresh } = useContext(AuthContext);
   const { order_id, cancellationOrder = false } = route?.params || {};
-  const { setGlobalRefresh } = useContext(AuthContext);
 
   // Refs
   const animationRef = useRef(null);
@@ -84,7 +68,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const [selectedCustomerData, setSelectedCustomerData] = useState({});
   const [visible, setVisible] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderStatus, setOrderStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,9 +84,9 @@ export default function OrderSummaryScreen({ navigation, route }) {
   });
 
   // GraphQL operations
-  const [orderDraftFinalize] = useMutation(ORDER_DRAFT_FINALIZE);
+const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_FINALIZE);
   const [fetchOrderDetails, { isLoading: fetchMetaDataLoading }] = useLazyQuery(
-    ORDER_DETAILS_WITH_METADATA
+    ORDER_DETAILS_WITH_METADATA,
   );
   const [cancelOrderQuery, { isLoading: cancelLoading }] =
     useMutation(CANCEL_ORDER_QUERY);
@@ -122,13 +105,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
       onCompleted: (data) => setProductList(data?.products?.edges || []),
     });
 
-  const styles = useStyle(theme);
-
-  console.log("searchData", JSON.stringify(searchData));
-
-  // const formattedDate = selectedDate.toISOString().split("T")[0];
   const formattedDate = selectedDate?.toLocaleDateString("en-CA");
-
   const isLoading = searchLoading || isCancelling;
 
   const orderLines = useMemo(
@@ -141,14 +118,13 @@ export default function OrderSummaryScreen({ navigation, route }) {
         amount: line.unitPrice.gross.amount,
         currency: line.unitPrice.gross.currency,
       })) || [],
-    [orderWithMetaData]
+    [orderWithMetaData],
   );
 
   // Handlers
   const handleSearch = useCallback(
     (query) => {
       setSearchQuery(query);
-
       if (query.trim()) {
         searchProducts({
           variables: {
@@ -161,7 +137,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
         setProductList(initialData?.products?.edges || []);
       }
     },
-    [initialData, searchProducts]
+    [initialData, searchProducts],
   );
 
   const fetchOrderData = useCallback(
@@ -182,7 +158,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
         }
       }
     },
-    [cancellationOrder, order_id]
+    [cancellationOrder, order_id],
   );
 
   const deleteProduct = async (id) => {
@@ -207,7 +183,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const orderSlotQuery = useCallback(async () => {
     try {
       const orderSlotResult = await GetOrderSlots(token);
-      console.log("result -->", orderSlotResult);
       setOrderSlots(orderSlotResult);
       setSelectedSlot(orderSlotResult[0]);
     } catch (err) {
@@ -229,7 +204,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
       setShowPicker(false);
       if (date) setSelectedDate(date);
     },
-    [selectedDate, formattedDate]
+    [selectedDate],
   );
 
   const ConfirmOrder = useCallback(async () => {
@@ -255,11 +230,10 @@ export default function OrderSummaryScreen({ navigation, route }) {
             setTimeout(() => {
               navigation.goBack();
             }, 2000);
-
             return "Order confirmed successfully!";
           },
           error: (err) => err?.message || "Failed to confirm order.",
-        }
+        },
       );
     } catch (err) {
       toast.error("Unexpected Error");
@@ -277,46 +251,24 @@ export default function OrderSummaryScreen({ navigation, route }) {
         toast.error("Order cancel failed");
       }
     } catch (err) {
+      console.log("err", err);
       toast.error("Failed to confirm order");
     } finally {
       setLocalLoading(false);
     }
   }, [order_id]);
 
-  // const cancelDraft = useCallback(async (id) => {
-  //   if (!id) {
-  //     toast.error("Order ID is missing");
-  //     return;
-  //   }
-
-  //   try {
-  //     const { data } = await orderDraftCancel({ variables: { id: id } });
-  //     const errors = data?.draftOrderDelete?.errors || [];
-
-  //     if (errors.length > 0) {
-  //       throw new Error(errors[0]?.message || "Failed to cancel draft order");
-  //     }
-
-  //     toast.success("Draft order cancelled successfully");
-  //     setTimeout(() => navigation.goBack(), 1000);
-  //   } catch (err) {
-  //     toast.error(err.message || "Failed to cancel draft order");
-  //   }
-  // }, [order_id]);
   const cancelDraft = useCallback(async (id) => {
     if (!id) {
       toast.error("Order ID is missing");
       return;
     }
-
     try {
       const { data } = await orderDraftCancel({ variables: { id } });
       const errors = data?.draftOrderDelete?.errors || [];
-
       if (errors.length > 0) {
         throw new Error(errors[0]?.message || "Failed to cancel draft order");
       }
-
       toast.success("Draft order cancelled successfully");
       setTimeout(() => navigation.goBack(), 1000);
     } catch (err) {
@@ -326,7 +278,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   const toggleBottomSheet = useCallback(
     () => setIsVisible((prev) => !prev),
-    []
+    [],
   );
   const showModal = useCallback(() => setVisible(true), []);
   const hideModal = useCallback(() => setVisible(false), []);
@@ -335,7 +287,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
     setCustomerVisible(false);
   }, []);
 
-  // Effects
   useEffect(() => {
     fetchOrderData();
   }, [fetchOrderData]);
@@ -345,64 +296,12 @@ export default function OrderSummaryScreen({ navigation, route }) {
   }, [cancellationOrder, orderSlotQuery]);
 
   useEffect(() => {
-    // If there is a search query, use searchData
     if (searchQuery && searchData) {
       setProductList(searchData.products?.edges || []);
-    }
-    // If no search query, use initialData
-    else if (!searchQuery && initialData) {
+    } else if (!searchQuery && initialData) {
       setProductList(initialData.products?.edges || []);
     }
   }, [initialData, searchData, searchQuery]);
-
-  // Render functions
-  const renderItem = useCallback(({ item, index }) => {
-    const total = item.amount * item.quantity;
-    return (
-      <View style={styles.row}>
-        <Text style={[styles.numberCell, styles.headerCell]}>{index + 1}</Text>
-        <Text style={styles.cell}>{item.productName}</Text>
-        <Text style={styles.cell}>{item.variantName}</Text>
-        <Text style={styles.cell}>{item.quantity}</Text>
-        <Text style={styles.cell}>
-          {item.amount} {item.currency}
-        </Text>
-        <Text style={styles.cell}>
-          {total} {item.currency}
-        </Text>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => deleteProduct(item.id)}
-        >
-          <Ionicons name="trash-outline" size={20} color="#941B00" />
-        </TouchableOpacity>
-      </View>
-    );
-  }, []);
-
-  const renderHeader = useCallback(
-    () => (
-      <View style={[styles.row, styles.headerRow]}>
-        {TABLE_COLUMNS.map((column) => (
-          <Text
-            key={column.key}
-            style={[
-              column.key === "sno" ? styles.numberCell : styles.cell,
-              styles.headerCell,
-            ]}
-          >
-            {column.label}
-          </Text>
-        ))}
-      </View>
-    ),
-    []
-  );
-
-  const renderEmptyState = useCallback(
-    () => <Text style={styles.emptyText}>No products added yet.</Text>,
-    []
-  );
 
   const renderSlotModal = useCallback(
     () => (
@@ -429,14 +328,16 @@ export default function OrderSummaryScreen({ navigation, route }) {
             </TouchableOpacity>
           ))}
           <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, { flex: 1 }]}
-              onPress={hideModal}
-            >
-              <Text style={styles.confirmButtonText}>Cancel</Text>
+            <TouchableOpacity style={styles.modalButton} onPress={hideModal}>
+              <Text style={[styles.confirmButtonText, { color: theme.text }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, { flex: 1 }]}
+              style={[
+                styles.modalButton,
+                { backgroundColor: theme.textSecondary },
+              ]}
               onPress={hideModal}
             >
               <Text style={styles.confirmButtonText}>Confirm</Text>
@@ -445,74 +346,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
         </Modal>
       </Portal>
     ),
-    [visible, orderSlots, selectedSlot]
-  );
-
-  const renderSuccessAnimation = useCallback(
-    () => (
-      <View style={styles.animationContainer}>
-        <LottieView
-          ref={animationRef}
-          source={require("../../../assets/animation/Success.json")}
-          autoPlay
-          loop={false}
-          style={styles.animation}
-        />
-      </View>
-    ),
-    []
-  );
-
-  const renderCustomerBottomSheet = useCallback(
-    () => (
-      <BottomSheet
-        addCustomer={true}
-        paddingBottom={20}
-        fontStyle="normal"
-        backgroundColor={theme.primary}
-        fontSize={22}
-        title="Customer list"
-        height="80%"
-        setStatus={setCustomerVisible}
-        visible={customerVisible}
-        onClose={() => setCustomerVisible(false)}
-        onPress={() => navigation.navigate("createCustomer")}
-      >
-        <CustomerList
-          customerPersonalInfo={setSelectedCustomerData}
-          order_id={order_id}
-          CancelBottomSheet={CancelBottomSheet}
-        />
-      </BottomSheet>
-    ),
-    [customerVisible, order_id]
-  );
-
-  const renderProductBottomSheet = useCallback(
-    () => (
-      <BottomSheet
-        paddingBottom={20}
-        fontStyle="normal"
-        fontSize={22}
-        title="Product list"
-        height="88%"
-        backgroundColor={theme.primary}
-        setStatus={setIsVisible}
-        visible={isVisible}
-        onClose={() => setIsVisible(false)}
-      >
-        <BottomSheetProductListContent
-          loading={isLoading}
-          list={productList}
-          order_id={order_id}
-          receiveMetaData={setMetaDataHandle}
-          CancelBottomSheet={CancelBottomSheet}
-          onSearchChange={handleSearch}
-          currentSearch={searchQuery}
-        />
-      </BottomSheet>
-    ),
-    [isVisible, productList, order_id, isLoading, searchQuery]
+    [visible, orderSlots, selectedSlot, theme],
   );
 
   const renderActionButtons = useCallback(() => {
@@ -523,7 +357,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
             <Text style={styles.statusText}>{orderStatus}</Text>
           </View>
           <TouchableOpacity style={styles.actionButton} onPress={cancelOrder}>
-            <Text style={{ color: theme.text }}>
+            <Text style={styles.buttonText}>
               {cancelLoading || localLoading ? "Cancelling" : "Cancel"}
             </Text>
           </TouchableOpacity>
@@ -565,7 +399,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
       >
         <TextInput
           placeholder="Select Customer Address"
-          placeholderTextColor={theme.text}
+          placeholderTextColor={theme.secondary}
           style={styles.selectionText}
           editable={false}
           value={
@@ -574,10 +408,10 @@ export default function OrderSummaryScreen({ navigation, route }) {
               : ""
           }
         />
-        <Icon name="chevron-down-outline" size={25} color={theme.text} />
+        <Icon name="chevron-down-outline" size={20} color={theme.text} />
       </TouchableOpacity>
     ),
-    [orderWithMetaData.length, selectedCustomerData]
+    [orderWithMetaData.length, selectedCustomerData, theme],
   );
 
   const renderDateSelection = useCallback(
@@ -588,15 +422,15 @@ export default function OrderSummaryScreen({ navigation, route }) {
       >
         <TextInput
           placeholder="Select Order Date"
-          placeholderTextColor={theme.text}
+          placeholderTextColor={theme.secondary}
           style={styles.selectionText}
           editable={false}
           value={formattedDate}
         />
-        <Icon name="chevron-down-outline" size={25} color={theme.text} />
+        <Icon name="chevron-down-outline" size={20} color={theme.text} />
       </TouchableOpacity>
     ),
-    [formattedDate, selectedDate]
+    [formattedDate, selectedDate, theme],
   );
 
   const renderSlotSelection = useCallback(
@@ -604,51 +438,33 @@ export default function OrderSummaryScreen({ navigation, route }) {
       <TouchableOpacity style={styles.selectionInput} onPress={showModal}>
         <TextInput
           placeholder="Available Slots"
-          placeholderTextColor={theme.text}
+          placeholderTextColor={theme.secondary}
           style={styles.selectionText}
           editable={false}
           value={selectedSlot}
         />
-        <Icon name="chevron-down-outline" size={25} color={theme.text} />
+        <Icon name="chevron-down-outline" size={20} color={theme.text} />
       </TouchableOpacity>
     ),
-    [selectedSlot, selectedDate]
+    [selectedSlot, selectedDate, theme],
   );
 
-  const renderLoadingSkeleton = () => (
-    <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-      {[...Array(6)].map((_, index) => (
-        <View key={index} style={styles.shimmerCard}>
-          <ShimmerPlaceholder height={30} width="60%" borderRadius={6} />
-          <ShimmerPlaceholder height={20} width="60%" borderRadius={6} />
-          <View style={{ marginTop: 5 }}>
-            <ShimmerPlaceholder height={16} width="80%" borderRadius={4} />
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-
+  // Back Handler logic
   useEffect(() => {
     const backAction = () => {
       setBackConfirmVisible(true);
       return true;
     };
-
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
-      backAction
+      backAction,
     );
-
     return () => subscription.remove();
   }, []);
 
   const confirmBack = async (id) => {
     try {
       await cancelDraft(id);
-      //  setTimeout(()=> {
-      //   navigation.goBack();
-      //  },[1000])
     } catch (err) {
       toast.error("Failed to cancel draft before leaving.");
     } finally {
@@ -656,42 +472,32 @@ export default function OrderSummaryScreen({ navigation, route }) {
     }
   };
 
-  const cancelBack = () => {
-    setBackConfirmVisible(false);
-  };
-
   return (
     <PaperProvider>
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
         {localLoading || fetchMetaDataLoading ? (
-          renderLoadingSkeleton()
+          <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
+            {[...Array(6)].map((_, index) => (
+              <View key={index} style={styles.shimmerCard}>
+                <ShimmerPlaceholder height={30} width="60%" borderRadius={6} />
+                <ShimmerPlaceholder height={20} width="60%" borderRadius={6} />
+              </View>
+            ))}
+          </View>
         ) : (
           <ScrollView contentContainerStyle={styles.container}>
             {error && <ErrorMessage errorMessage={error.message} />}
             {renderActionButtons()}
-            {/* {orderWithMetaData.length > 0 ? (
-                <View>
-                  {renderHeader()}
-                  <FlatList
-                    data={orderLines}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderItem}
-                    ListEmptyComponent={renderEmptyState}
-                  />
-                </View>
-              ) : (
-                renderEmptyState()
-              )} */}
-            <ScrollView contentContainerStyle={styles.container}>
-              <OrderTable
-                orderLines={orderLines}
-                onDeleteProduct={deleteProduct}
-              />
-            </ScrollView>
+
+            <OrderTable
+              orderLines={orderLines}
+              onDeleteProduct={deleteProduct}
+            />
           </ScrollView>
         )}
+
         {!cancellationOrder && (
-          <View>
+          <View style={{ backgroundColor: theme.background }}>
             {renderCustomerSelection()}
             {renderDateSelection()}
             {showPicker && (
@@ -704,41 +510,107 @@ export default function OrderSummaryScreen({ navigation, route }) {
             )}
             {renderSlotSelection()}
             <TouchableOpacity
-              style={styles.confirmButton}
+              style={[
+                styles.confirmButton, 
+                isFinalizing && { opacity: 0.6 } 
+              ]}
               onPress={ConfirmOrder}
+              disabled={isFinalizing}
             >
-              <Text style={styles.confirmButtonText}>Confirm Order</Text>
+              <Text style={styles.confirmButtonText}>
+                {isFinalizing ? "Confirming..." : "Confirm Order"}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
 
         {renderSlotModal()}
-        {showSuccess && renderSuccessAnimation()}
+        {showSuccess && (
+          <View style={styles.animationContainer}>
+            <LottieView
+              ref={animationRef}
+              source={require("../../../assets/animation/Success.json")}
+              autoPlay
+              loop={false}
+              style={styles.animation}
+            />
+          </View>
+        )}
       </SafeAreaView>
-      {customerVisible && renderCustomerBottomSheet()}
-      {isVisible && renderProductBottomSheet()}
+
+      {customerVisible && (
+        <BottomSheet
+          addCustomer={true}
+          paddingBottom={20}
+          fontStyle="normal"
+          backgroundColor={theme.primary}
+          fontSize={22}
+          title="Customer list"
+          height="80%"
+          setStatus={setCustomerVisible}
+          visible={customerVisible}
+          onClose={() => setCustomerVisible(false)}
+          onPress={() => navigation.navigate("createCustomer")}
+        >
+          <CustomerList
+            customerPersonalInfo={setSelectedCustomerData}
+            order_id={order_id}
+            CancelBottomSheet={CancelBottomSheet}
+          />
+        </BottomSheet>
+      )}
+
+      {isVisible && (
+        <BottomSheet
+          paddingBottom={20}
+          fontStyle="normal"
+          fontSize={22}
+          title="Product list"
+          height="88%"
+          backgroundColor={theme.primary}
+          setStatus={setIsVisible}
+          visible={isVisible}
+          onClose={() => setIsVisible(false)}
+        >
+          <BottomSheetProductListContent
+            loading={isLoading}
+            list={productList}
+            order_id={order_id}
+            receiveMetaData={setMetaDataHandle}
+            CancelBottomSheet={CancelBottomSheet}
+            onSearchChange={handleSearch}
+            currentSearch={searchQuery}
+          />
+        </BottomSheet>
+      )}
+
       <Portal>
         <Modal
           visible={backConfirmVisible}
-          onDismiss={cancelBack}
-          contentContainerStyle={{
-            backgroundColor: "white",
-            padding: 20,
-            margin: 20,
-            borderRadius: 10,
-          }}
+          onDismiss={() => setBackConfirmVisible(false)}
+          contentContainerStyle={styles.modalContainer}
         >
-          <Text style={{ fontSize: 16, marginBottom: 20 }}>
+          <Text style={{ fontSize: 16, marginBottom: 20, color: theme.text }}>
             Are you sure you want to go back? Your draft order will be
             cancelled.
           </Text>
 
-          <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-            <TouchableOpacity onPress={cancelBack} style={{ marginRight: 30 }}>
-              <Text style={{ color: "gray" }}>No</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              gap: 20,
+            }}
+          >
+            <TouchableOpacity onPress={() => setBackConfirmVisible(false)}>
+              <Text style={{ color: theme.secondary, fontWeight: "600" }}>
+                No
+              </Text>
             </TouchableOpacity>
+
+            {/* FIX: Used theme.error instead of undefined colors.CANCELED */}
             <TouchableOpacity onPress={() => confirmBack(order_id)}>
-              <Text style={{ color: "red" }}>Yes</Text>
+              <Text style={{ color: theme.error, fontWeight: "600" }}>Yes</Text>
             </TouchableOpacity>
           </View>
         </Modal>

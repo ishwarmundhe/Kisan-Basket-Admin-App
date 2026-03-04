@@ -1,167 +1,183 @@
 import {
   ApolloClient,
   InMemoryCache,
-  createHttpLink,
-  from,
+  HttpLink,
+  ApolloLink,
+  Observable,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
-import { setContext } from "@apollo/client/link/context";
-import { Observable } from "@apollo/client/utilities";
-import { REFRESH_TOKEN_MUTATION } from "../graphql/Mutation";
-import { localStore } from "../localStore/LocalStore";
+
+import { store } from "../redux/store";
+import { setToken, logout as logoutAction } from "../redux/slices/authSlice";
 import { GRAPHQL_BASE_URL, API_BASE_URL } from "@env";
+import localStore from "../utils/localStore";
 
-import { toast } from "sonner-native";
-import { logout } from "../constant/AuthService";
-
-// HTTP Link Configuration
-const httpLink = createHttpLink({
+const httpLink = new HttpLink({
   uri: GRAPHQL_BASE_URL,
-  credentials: "include",
 });
 
-// Base Client (without error handling) - DECLARE FIRST
-export const bareClient = new ApolloClient({
-  link: httpLink,
-  cache: new InMemoryCache(),
-  defaultOptions: {
-    watchQuery: {
-      fetchPolicy: "network-only",
-      errorPolicy: "ignore",
-    },
-    query: {
-      fetchPolicy: "network-only",
-      errorPolicy: "all",
-    },
-    mutate: {
-      errorPolicy: "all",
-    },
-  },
+const authLink = new ApolloLink((operation, forward) => {
+  return new Observable((observer) => {
+    let handle;
+
+    Promise.resolve(localStore.getToken())
+      .then((token) => {
+        // Set the headers
+        operation.setContext({
+          headers: {
+            ...operation.getContext().headers,
+            authorization: token ? `JWT ${token}` : "",
+          },
+        });
+      })
+      .then(() => {
+        // Forward the operation
+        handle = forward(operation).subscribe({
+          next: observer.next.bind(observer),
+          error: observer.error.bind(observer),
+          complete: observer.complete.bind(observer),
+        });
+      })
+      .catch((error) => {
+        // Handle errors in token retrieval
+        observer.error(error);
+      });
+
+    // Cleanup function
+    return () => {
+      if (handle) handle.unsubscribe();
+    };
+  });
 });
 
-// Auth Link for JWT Token
-const authLink = setContext(async (_, { headers }) => {
-  const token = await localStore.getToken();
-  return {
-    headers: {
-      ...headers,
-      Authorization: token ? `JWT ${token}` : "",
-    },
-  };
-});
+// --- REFRESH TOKEN LOGIC ---
+let isRefreshing = false;
+let pendingRequests = [];
 
-// Token Refresh Function - NOW CAN USE bareClient
-async function refreshToken() {
-  const refreshToken = await localStore.getRefreshToken(); // Fixed typo: getRefreshTokenn -> getRefreshToken
-  if (!refreshToken) {
-    toast.warning("No refresh token available");
-    return null;
-  }
+const resolvePendingRequests = (token) => {
+  pendingRequests.forEach((callback) => callback(token));
+  pendingRequests = [];
+};
+
+const getNewToken = async () => {
+  const refreshToken = await localStore.getRefreshToken();
+  if (!refreshToken) return null;
 
   try {
-    const result = await bareClient.mutate({
-      mutation: REFRESH_TOKEN_MUTATION,
-      variables: { refreshToken },
+    // Use standard fetch to avoid Apollo loops
+    const response = await fetch(GRAPHQL_BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `
+          mutation refreshToken($refreshToken: String!) {
+            tokenRefresh(refreshToken: $refreshToken) {
+              token
+              errors { message }
+            }
+          }
+        `,
+        variables: { refreshToken },
+      }),
     });
 
-    const token = result?.data?.tokenRefresh?.token;
-    const refreshTokenNew = result?.data?.tokenRefresh?.refreshToken;
-
-    if (token) {
-      await Promise.all([
-        localStore.setToken(token),
-        refreshTokenNew && localStore.setRefreshToken(refreshTokenNew),
-      ]);
-      return token;
+    const { data } = await response.json();
+    if (data?.tokenRefresh?.token) {
+      return data.tokenRefresh.token;
     }
-    return null;
   } catch (error) {
-    console.error("Token refresh failed:", error);
-    return null;
+    console.log("Refresh request failed", error);
   }
-}
+  return null;
+};
 
-// Error Handling Link
-const errorLink = onError(
-  ({ graphQLErrors, networkError, operation, forward }) => {
-    // Handle network errors
-    if (networkError) {
-      toast.error(`Network error: ${networkError.message}`);
-      return;
-    }
+// 3. Error Link (Handles 401/Expired)
+const errorLink = onError(({ graphQLErrors, operation, forward }) => {
+  if (graphQLErrors) {
+    for (let err of graphQLErrors) {
+      // CHECK YOUR SPECIFIC BACKEND ERROR MESSAGE
+      const isTokenExpired =
+        err.message.includes("Signature has expired") ||
+        err.message.includes("JWTExpired");
 
-    if (graphQLErrors) {
-      for (const err of graphQLErrors) {
-        const message = err.message?.toLowerCase?.() || "";
-        const errorCode = err.extensions?.code || "";
+      if (isTokenExpired) {
+        let forward$;
 
-        // Skip if already retried
-        if (operation.getContext().retry) {
-          toast.error(`Authentication failed: ${message}`);
-          logout();
-          return;
-        }
+        if (!isRefreshing) {
+          isRefreshing = true;
+          forward$ = new Observable((observer) => {
+            getNewToken()
+              .then(async (newToken) => {
+                if (newToken) {
+                  // 1. Update Storage & Redux
+                  await localStore.setToken(newToken);
+                  store.dispatch(setToken(newToken));
 
-        // Conditions for token refresh
-        const shouldRefresh = [
-          // "signature has expired",
-          // "permission",
-          // "manage_orders",
-          "invalid token",
-        ].some((term) => message.includes(term.toLowerCase()));
+                  // 2. Resolve pending requests
+                  resolvePendingRequests(newToken);
 
-        if (shouldRefresh) {
-          return new Observable((observer) => {
-            refreshToken()
-              .then((newToken) => {
-                if (!newToken) {
-                  throw new Error("Refresh token failed");
+                  // 3. Retry THIS request
+                  const oldHeaders = operation.getContext().headers;
+                  operation.setContext({
+                    headers: {
+                      ...oldHeaders,
+                      authorization: `JWT ${newToken}`,
+                    },
+                  });
+
+                  const subscriber = {
+                    next: observer.next.bind(observer),
+                    error: observer.error.bind(observer),
+                    complete: observer.complete.bind(observer),
+                  };
+                  forward(operation).subscribe(subscriber);
+                } else {
+                  // Refresh failed -> Logout
+                  observer.error(err);
+                  store.dispatch(logoutAction());
+                  await localStore.clear();
                 }
-
-                // Retry with new token
-                operation.setContext(({ headers = {} }) => ({
+              })
+              .catch((e) => {
+                observer.error(e);
+                store.dispatch(logoutAction());
+              })
+              .finally(() => {
+                isRefreshing = false;
+              });
+          });
+        } else {
+          // Add to queue
+          forward$ = new Observable((observer) => {
+            pendingRequests.push((newToken) => {
+              if (newToken) {
+                const oldHeaders = operation.getContext().headers;
+                operation.setContext({
                   headers: {
-                    ...headers,
-                    Authorization: `JWT ${newToken}`,
+                    ...oldHeaders,
+                    authorization: `JWT ${newToken}`,
                   },
-                  retry: true,
-                }));
-
+                });
                 const subscriber = {
                   next: observer.next.bind(observer),
                   error: observer.error.bind(observer),
                   complete: observer.complete.bind(observer),
                 };
-
                 forward(operation).subscribe(subscriber);
-              })
-              .catch((error) => {
-                toast.error("Session expired. Please login again.");
-                logout();
-                observer.error(error);
-              });
+              } else {
+                observer.error(err);
+              }
+            });
           });
         }
+        return forward$;
       }
     }
   }
-);
+});
 
-// Main Client with all links
+// 4. Export Client (Use 'ApolloLink.from' instead of 'from')
 export const client = new ApolloClient({
-  link: from([authLink, errorLink, httpLink]), // Reordered for better flow
+  link: ApolloLink.from([errorLink, authLink, httpLink]),
   cache: new InMemoryCache(),
-  defaultOptions: {
-    watchQuery: {
-      fetchPolicy: "cache-and-network",
-      errorPolicy: "all",
-    },
-    query: {
-      fetchPolicy: "network-only",
-      errorPolicy: "all",
-    },
-    mutate: {
-      errorPolicy: "all",
-    },
-  },
 });

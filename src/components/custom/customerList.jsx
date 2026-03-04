@@ -22,72 +22,105 @@ import {
   SHIPPING_METHOD_UPDATE,
   ORDER_DRAFT_UPDATE,
 } from "../../graphql/Mutation";
-import { colors } from "../../constant/Colors";
 import { useTheme } from "../../constant/ThemeContext";
+
 const useStyle = (theme) => {
   return useMemo(() => {
-    return StyleSheet.create(
-      {
-        footer: {
-          // backgroundColor: "white",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          paddingVertical: 12,
-        },
-        backButton: {
-          flex: 1,
-          borderWidth: 1,
-          borderColor: "#ddd",
-          borderRadius: 6,
-          padding: 12,
-          marginRight: 8,
-          alignItems: "center",
-        },
-        backButtonText: { fontWeight: "500", color: theme.text },
-        confirmButton: {
-          flex: 1,
-          backgroundColor: "#2E7D32",
-          padding: 12,
-          borderRadius: 8,
-          alignItems: "center",
-        },
-        confirmButtonText: {
-          color: theme.text,
-          fontSize: 16,
-          fontWeight: "500",
-        },
-        selectedVarient: {
-          padding: 10,
-          borderWidth: 1.5,
-          borderRadius: 8,
-        },
-        customerName: { flexDirection: "row", gap: 5 },
-        input: {
-          borderWidth: 0.5,
-          borderRadius: 8,
-          marginVertical: 10,
-          paddingLeft: 10,
-          borderColor: theme.text,
-          color: theme.text,
-        },
+    return StyleSheet.create({
+      container: {
+        flex: 1,
+        backgroundColor: theme.background,
       },
-      [theme]
-    );
-  });
+      input: {
+        height: 48,
+        backgroundColor: theme.primary, // Zinc 900 inset look
+        borderWidth: 1,
+        borderRadius: 8,
+        marginVertical: 10,
+        paddingHorizontal: 12,
+        borderColor: theme.border, // Zinc 800
+        color: theme.text, // Zinc 50
+        fontSize: 15,
+      },
+      listWrapper: {
+        backgroundColor: theme.primary,
+      },
+      listContent: {
+        gap: 10,
+        paddingBottom: 20,
+      },
+      selectedVarient: {
+        padding: 12,
+        borderWidth: 1.5,
+        borderRadius: 8,
+      },
+      customerName: {
+        flexDirection: "row",
+        gap: 6,
+        marginTop: 4,
+        alignItems: "center",
+      },
+      footer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: theme.border,
+        backgroundColor: theme.primary,
+      },
+      backButton: {
+        flex: 1,
+        backgroundColor: theme.primary,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 8,
+        padding: 12,
+        marginRight: 10,
+        alignItems: "center",
+        justifyContent: "center",
+      },
+      backButtonText: {
+        fontWeight: "600",
+        color: theme.text,
+      },
+      confirmButton: {
+        flex: 1,
+        backgroundColor: theme.textSecondary, // White (Zinc 50)
+        padding: 12,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
+      },
+      confirmButtonDisabled: {
+        backgroundColor: theme.border, // Muted Zinc 800
+        opacity: 0.5,
+      },
+      confirmButtonText: {
+        color: theme.background, // Black (Zinc 950)
+        fontSize: 16,
+        fontWeight: "700",
+      },
+      statusText: {
+        color: theme.secondary,
+        fontSize: 14,
+        marginVertical: 5,
+        textAlign: "center",
+      },
+    });
+  }, [theme]);
 };
+
 const CustomerList = ({
   order_id,
   CancelBottomSheet,
   customerPersonalInfo,
 }) => {
-  // State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [loading, setLoading] = useState(false);
   const { theme } = useTheme();
   const styles = useStyle(theme);
 
-  // GraphQL Queries
   const [
     searchCustomers,
     {
@@ -96,84 +129,40 @@ const CustomerList = ({
       error: searchCustomerError,
     },
   ] = useLazyQuery(SEARCH_CUSTOMER_QUERY);
-
   const [getShippingMethods] = useLazyQuery(GET_SHIPPING_METHODS);
   const [singleCustomerAddresses] = useLazyQuery(CUSTOMER_ADDRESSES);
-
-  // GraphQL Mutations
   const [shippingMethodUpdate] = useMutation(SHIPPING_METHOD_UPDATE);
   const [updateOrderDraft] = useMutation(ORDER_DRAFT_UPDATE);
 
-  // Derived data
   const searchCustomerResults = searchCustomerData?.search?.edges ?? [];
   const hasSearchResults = searchQuery.trim().length > 0 && !customerLoading;
   const isConfirmDisabled = !selectedCustomer?.id || loading;
 
-  // Debounced search function
   const debouncedSearch = useMemo(
     () =>
       debounce((query) => {
         searchCustomers({
-          variables: {
-            first: 20,
-            query: query || "",
-            after: null,
-          },
+          variables: { first: 20, query: query || "", after: null },
         });
-      }, 300), // 300ms delay
-    [searchCustomers]
+      }, 300),
+    [searchCustomers],
   );
 
-  // Cleanup debounce on unmount
   useEffect(() => {
-    return () => {
-      debouncedSearch.cancel();
-    };
+    return () => debouncedSearch.cancel();
   }, [debouncedSearch]);
 
-  // Effects
   useEffect(() => {
-    if (order_id) {
-      loadInitialCustomers();
-    }
+    if (order_id) loadInitialCustomers();
   }, [order_id]);
 
-  // Helper functions
-  const loadInitialCustomers = () => {
-    searchCustomers({
-      variables: {
-        first: 20,
-        query: "",
-        after: null,
-      },
-    });
+  const loadInitialCustomers = () =>
+    searchCustomers({ variables: { first: 20, query: "", after: null } });
+
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    if (text.length === 0 || text.length >= 2) debouncedSearch(text);
   };
-
-  const handleSearch = useCallback(
-    (text) => {
-      setSearchQuery(text);
-
-      // Only search if query length is 0 or >= 2 characters
-      if (text.length === 0 || text.length >= 2) {
-        debouncedSearch(text);
-      }
-    },
-    [debouncedSearch]
-  );
-
-  const transformAddress = (address) => ({
-    firstName: address.firstName,
-    lastName: address.lastName,
-    phone: address.phone,
-    companyName: address.companyName,
-    streetAddress1: address.streetAddress1,
-    streetAddress2: address.streetAddress2,
-    city: address.city,
-    cityArea: address.cityArea,
-    postalCode: address.postalCode,
-    country: address.country.code,
-    countryArea: "Maharashtra",
-  });
 
   const handleCustomerSelect = useCallback(
     (customer) => {
@@ -181,119 +170,56 @@ const CustomerList = ({
       setSelectedCustomer(customer);
       customerPersonalInfo(customer);
     },
-    [customerPersonalInfo]
+    [customerPersonalInfo],
   );
-
-  const handleShippingMethodUpdate = async (orderId, shippingMethodId) => {
-    try {
-      await shippingMethodUpdate({
-        variables: {
-          id: orderId,
-          input: {
-            shippingMethod: shippingMethodId,
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Shipping method update error:", error);
-      throw new Error("Failed to update shipping method");
-    }
-  };
-
-  const updateOrderWithAddress = async (orderId, address) => {
-    const result = await updateOrderDraft({
-      variables: {
-        id: orderId,
-        input: {
-          billingAddress: address,
-          shippingAddress: address,
-        },
-      },
-    });
-
-    const errors = result?.data?.draftOrderUpdate?.errors || [];
-    if (errors.length > 0) {
-      throw new Error(errors[0]?.message || "Address update failed");
-    }
-
-    return result;
-  };
-
-  const fetchAndUpdateShippingMethod = async () => {
-    const { data: shippingData } = await getShippingMethods({
-      variables: { id: order_id },
-    });
-
-    const shippingMethodId = shippingData?.order?.shippingMethods?.[0]?.id;
-
-    if (!shippingMethodId) {
-      throw new Error("Shipping method not found");
-    }
-
-    await handleShippingMethodUpdate(order_id, shippingMethodId);
-  };
 
   const handleCustomerSelection = async () => {
     if (!selectedCustomer?.id || !order_id) return;
-
     setLoading(true);
-
     try {
-      // Step 1: Attach customer to order
-      const customerUpdateResult = await updateOrderDraft({
-        variables: {
-          id: order_id,
-          input: {
-            user: selectedCustomer.id,
-          },
-        },
+      await updateOrderDraft({
+        variables: { id: order_id, input: { user: selectedCustomer.id } },
       });
-
-      const customerErrors =
-        customerUpdateResult?.data?.draftOrderUpdate?.errors || [];
-      if (customerErrors.length > 0) {
-        toast.error(customerErrors[0]?.message || "Failed to attach customer");
-        return;
-      }
-
-      // Step 2: Fetch customer addresses
       const { data: customerData } = await singleCustomerAddresses({
         variables: { id: selectedCustomer.id },
       });
-
-      console.log(customerData);
-
       const customerAddresses = customerData?.user?.addresses || [];
 
-      if (customerAddresses.length === 0) {
-        toast.warning("No address found for selected customer");
-        return;
+      if (customerAddresses.length > 0) {
+        const address = customerAddresses[0];
+        const payload = {
+          firstName: address.firstName,
+          lastName: address.lastName,
+          phone: address.phone,
+          streetAddress1: address.streetAddress1,
+          city: address.city,
+          postalCode: address.postalCode,
+          country: address.country.code,
+          countryArea: "Maharashtra",
+        };
+        await updateOrderDraft({
+          variables: {
+            id: order_id,
+            input: { billingAddress: payload, shippingAddress: payload },
+          },
+        });
+
+        const { data: sData } = await getShippingMethods({
+          variables: { id: order_id },
+        });
+        const sMethodId = sData?.order?.shippingMethods?.[0]?.id;
+        if (sMethodId)
+          await shippingMethodUpdate({
+            variables: { id: order_id, input: { shippingMethod: sMethodId } },
+          });
       }
 
-      // Step 3: Transform and update address
-      const payloadAddress = transformAddress(customerAddresses[0]);
-      await updateOrderWithAddress(order_id, payloadAddress);
-
-      // Step 4: Update shipping method
-      await fetchAndUpdateShippingMethod();
-
-      toast.success("Customer & Address successfully attached");
-      await CancelBottomSheet();
+      toast.success("Customer selected");
+      CancelBottomSheet();
     } catch (error) {
-      console.error("Customer selection error:", error);
-      handleError(error);
+      toast.error(error.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleError = (error) => {
-    if (error.graphQLErrors) {
-      toast.error("GraphQL Error: " + error.graphQLErrors[0]?.message);
-    } else if (error.networkError) {
-      toast.error("Network error. Please check your connection.");
-    } else {
-      toast.error(error.message || "Something went wrong!");
     }
   };
 
@@ -301,66 +227,68 @@ const CustomerList = ({
     ({ item }) => {
       const customer = item.node;
       const isSelected = customer?.id === selectedCustomer?.id;
-      const activeText = isSelected ? colors.HEADING_COLOR : theme.text;
 
       return (
         <TouchableOpacity
           style={[
             styles.selectedVarient,
             {
-              borderColor: isSelected
-                ? colors.CARD_BORDER
-                : colors.CARD_BACKGROUND,
+              borderColor: isSelected ? theme.deliveryDate : theme.border,
               backgroundColor: isSelected
-                ? colors.CUSTOMER_LIST_CARD
-                : colors.BOTTOMSHEET,
+                ? `${theme.deliveryDate}15`
+                : theme.primary,
             },
           ]}
           onPress={() => handleCustomerSelect(customer)}
         >
-          <Text style={{ color: activeText }}>
+          <Text
+            style={{
+              color: theme.heading,
+              fontWeight: isSelected ? "600" : "400",
+            }}
+          >
             {`Address: ${customer?.addresses?.[0]?.streetAddress1 || "N/A"}`}
           </Text>
-          <Text style={{ color: activeText }}>
+          <Text style={{ color: theme.secondary, fontSize: 13, marginTop: 4 }}>
             {`Phone: ${customer?.phoneNumber || "N/A"}`}
           </Text>
           <View style={styles.customerName}>
-            <Text style={{ color: activeText }}>
-              {`Name: ${customer.firstName}`}
+            <Text style={{ color: theme.secondary, fontSize: 13 }}>
+              {`Name: ${customer.firstName} ${customer.lastName}`}
             </Text>
-            <Text style={{ color: activeText }}>{`${customer.lastName}`}</Text>
           </View>
         </TouchableOpacity>
       );
     },
-    [selectedCustomer, handleCustomerSelect]
+    [selectedCustomer, theme, styles],
   );
 
   return (
     <ScreenLayout paddingHorizontal={5}>
-      {searchCustomerError && (
-        <Text style={{ color: "red" }}>{searchCustomerError.message}</Text>
-      )}
-
       <TextInput
         placeholder="Search Customer"
-        placeholderTextColor={theme.text}
+        placeholderTextColor={theme.secondary}
         style={styles.input}
         value={searchQuery}
         onChangeText={handleSearch}
       />
 
-      {customerLoading && <Text style={{ color: theme.text }}>Loading...</Text>}
+      {customerLoading && (
+        <ActivityIndicator
+          size="small"
+          color={theme.text}
+          style={{ margin: 10 }}
+        />
+      )}
 
       {hasSearchResults && searchCustomerResults.length === 0 && (
-        <Text style={{ textAlign: "center", color: theme.text }}>
-          No customers found.
-        </Text>
+        <Text style={styles.statusText}>No customers found.</Text>
       )}
 
       <FlatList
         keyboardShouldPersistTaps="always"
-        contentContainerStyle={{ gap: 10, marginBottom: 10 }}
+        style={styles.listWrapper}
+        contentContainerStyle={styles.listContent}
         data={searchCustomerResults}
         keyExtractor={(item) => item?.node?.id}
         renderItem={renderCustomerItem}
@@ -374,12 +302,12 @@ const CustomerList = ({
           onPress={handleCustomerSelection}
           style={[
             styles.confirmButton,
-            isConfirmDisabled && { backgroundColor: "#ccc" },
+            isConfirmDisabled && styles.confirmButtonDisabled,
           ]}
           disabled={isConfirmDisabled}
         >
           {loading ? (
-            <ActivityIndicator color={theme.text} />
+            <ActivityIndicator color={theme.background} />
           ) : (
             <Text style={styles.confirmButtonText}>Confirm</Text>
           )}
@@ -388,4 +316,5 @@ const CustomerList = ({
     </ScreenLayout>
   );
 };
+
 export default React.memo(CustomerList);

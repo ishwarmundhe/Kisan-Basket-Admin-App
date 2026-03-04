@@ -35,18 +35,23 @@ const useStyle = (theme) => {
       {
         keyboardAvoidingView: {
           flex: 1,
+          backgroundColor: theme.background, // Zinc 950
         },
         scrollView: {
           flex: 1,
+          backgroundColor: theme.background,
         },
         scrollContent: {
           paddingBottom: 80,
+          paddingHorizontal: 4, // Prevent cards from touching edges
         },
+
+        // --- SECTIONS ---
         section: {
-          backgroundColor: theme.primary,
+          backgroundColor: theme.primary, // Zinc 900
           borderWidth: 1,
-          borderColor: theme.border,
-          borderRadius: 15,
+          borderColor: theme.border, // Zinc 800
+          borderRadius: 12,
           marginTop: 16,
           paddingHorizontal: 16,
           paddingVertical: 20,
@@ -54,107 +59,111 @@ const useStyle = (theme) => {
         sectionTitle: {
           fontSize: 18,
           fontWeight: "600",
-          color: theme.heading,
+          color: theme.heading, // White
           marginBottom: 20,
         },
+
+        // --- INPUTS ---
         inputContainer: {
           marginBottom: 20,
         },
         inputLabel: {
           fontSize: 14,
           fontWeight: "500",
-          color: theme.heading,
+          color: theme.secondary, // Zinc 400 (Muted)
           marginBottom: 8,
         },
         required: {
-          color: "#EF4444",
+          color: "#EF4444", // Red 500
         },
         input: {
           borderWidth: 1,
-          borderColor: "#D1D5DB",
+          borderColor: theme.border, // Zinc 800
           borderRadius: 8,
-          paddingHorizontal: 16,
+          paddingHorizontal: 12,
           paddingVertical: 12,
-          fontSize: 16,
-          color: theme.text,
-          backgroundColor: theme.background,
+          fontSize: 15,
+          color: theme.text, // White
+          backgroundColor: theme.background, // Zinc 950 (Inset look inside the card)
           minHeight: 48,
         },
         inputError: {
           borderColor: "#EF4444",
-          backgroundColor: colors.TABLE_ADD_BACKGROUND,
+          backgroundColor: "rgba(239, 68, 68, 0.05)", // Subtle red tint
         },
         inputValid: {
-          borderColor: "#10B981",
+          borderColor: theme.success || "#10B981",
         },
         errorText: {
           fontSize: 12,
           color: "#EF4444",
-          marginTop: 4,
-          marginLeft: 4,
+          marginTop: 6,
+          marginLeft: 2,
         },
+
+        // --- PICKER / SELECT ---
         pickerContainer: {
           borderWidth: 1,
-          borderColor: "#D1D5DB",
+          borderColor: theme.border,
           borderRadius: 8,
           marginBottom: 8,
+          backgroundColor: theme.background,
+          overflow: "hidden",
         },
         picker: {
-          color: "white",
+          color: theme.text,
+          backgroundColor: theme.background,
         },
         item: {
-          color: "white",
-          backgroundColor: theme.primary,
-        },
-        saveButton: {
-          backgroundColor: theme.textSecondary,
-          // marginHorizontal: 16,
-          marginVertical: 20,
-          paddingVertical: 16,
-          borderRadius: 12,
-          alignItems: "center",
-          justifyContent: "center",
-          shadowColor: "#3B82F6",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 8,
-        },
-        saveButtonDisabled: {
-          opacity: 0.7,
-        },
-        saveButtonText: {
-          color: theme.heading,
-          fontSize: 16,
-          fontWeight: "600",
-        },
-        label: {
           color: theme.text,
-          fontWeight: "600",
-          marginBottom: 8,
+          backgroundColor: theme.background,
         },
         selectContainer: {
           borderWidth: 1,
-          borderColor: "#D1D5DB",
+          borderColor: theme.border, // Zinc 800
           borderRadius: 8,
-          paddingHorizontal: 16,
+          paddingHorizontal: 12,
           paddingVertical: 12,
-          backgroundColor: theme.background,
+          backgroundColor: theme.background, // Zinc 950
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
           minHeight: 48,
         },
         selectText: {
-          fontSize: 16,
+          fontSize: 15,
           color: theme.text,
         },
         selectArrow: {
           fontSize: 12,
-          color: "#6B7280",
+          color: theme.secondary,
+        },
+
+        // --- BUTTONS ---
+        saveButton: {
+          backgroundColor: theme.textSecondary, // White Background
+          marginVertical: 24,
+          paddingVertical: 14,
+          borderRadius: 8,
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+        saveButtonDisabled: {
+          opacity: 0.5,
+          backgroundColor: theme.border, // Zinc 800 if disabled
+        },
+        saveButtonText: {
+          color: theme.background, // Black Text (Inverted)
+          fontSize: 16,
+          fontWeight: "700",
         },
       },
-      [theme]
+      [theme],
     );
   });
 };

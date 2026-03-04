@@ -5,7 +5,7 @@ export const localStore = {
     try {
       await AsyncStorage.setItem("token", token);
     } catch (err) {
-      // console.error('Error storing token:', err);
+      console.error("Error storing token:", err);
     }
   },
 

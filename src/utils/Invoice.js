@@ -1,38 +1,50 @@
 // utils/invoiceUtils.js (React Native CLI version)
 import RNFetchBlob from "react-native-blob-util";
-import Share from "react-native-share";
+import Share from "react-native-share"; // Ensure this matches your installed version
 import { toast } from "sonner-native";
-import { client } from "../client/client";
-import { CONFIRM_ORDER_MUTATION, GENERATE_INVOICE } from "../graphql/Mutation";
+// Adjust these imports to match your project structure if needed
+import { client } from "./../client/client";
+import {
+  CONFIRM_ORDER_MUTATION,
+  GENERATE_INVOICE,
+} from "./../graphql/Mutation";
 
-/**
- * Download and share an invoice file (PDF) using native modules.
- */
-export const downloadAndShareInvoice = async (invoiceUrl) => {
+// utils/invoiceUtils.js
+
+const downloadAndShareInvoice = async (invoiceUrl) => {
   if (typeof invoiceUrl !== "string" || !invoiceUrl.startsWith("http")) {
     throw new Error(`Invalid invoice URL: ${invoiceUrl}`);
   }
 
+  const { config, fs } = RNFetchBlob;
   const filename = `invoice_${Date.now()}.pdf`;
-  const path = `${RNFetchBlob.CachesDirectoryPath}/${filename}`;
+  const path = `${fs.dirs.CacheDir}/${filename}`;
 
-  // Download file to cache directory
-  const downloadResult = await RNFetchBlob.downloadFile({
-    fromUrl: invoiceUrl,
-    toFile: path,
-  }).promise;
+  try {
+    // FIX: Remove 'addAndroidDownloads' to allow writing to CacheDir
+    const res = await config({
+      fileCache: true,
+      path: path,
+    }).fetch("GET", invoiceUrl);
 
-  if (downloadResult.statusCode !== 200) {
-    throw new Error("Failed to download invoice file");
+    // Check status
+    const status = res.info().status;
+    if (status !== 200) {
+      throw new Error(`Failed to download invoice (Status: ${status})`);
+    }
+
+    // Share the file
+    // Note: react-native-share handles file:// paths from internal cache automatically
+    await Share.open({
+      url: `file://${res.path()}`,
+      type: "application/pdf",
+      title: "Share Invoice",
+      failOnCancel: false,
+    });
+  } catch (error) {
+    console.error("Download Error:", error);
+    throw error;
   }
-
-  // Share the downloaded file
-  await Share.open({
-    url: `file://${path}`,
-    type: "application/pdf",
-    showAppsToView: true,
-    title: "Share Invoice",
-  });
 };
 
 /**
@@ -41,7 +53,7 @@ export const downloadAndShareInvoice = async (invoiceUrl) => {
 export const generateAndShareInvoice = async (
   order_id,
   status,
-  refetchOrder
+  refetchOrder,
 ) => {
   try {
     if (!order_id) throw new Error("Order ID not found");
@@ -61,6 +73,7 @@ export const generateAndShareInvoice = async (
       toast.success("Order confirmed successfully");
 
       if (refetchOrder) {
+        // Wait briefly for server to process before refetching
         await new Promise((resolve) => setTimeout(resolve, 1500));
         await refetchOrder(true);
       }
@@ -79,9 +92,14 @@ export const generateAndShareInvoice = async (
     if (!invoiceUrl) throw new Error("No invoice URL returned");
 
     // Step 3: Download & share invoice
+    // This calls the fixed local function above
     await downloadAndShareInvoice(invoiceUrl);
   } catch (error) {
-    toast.error(error.message || "Invoice generation failed");
-    throw error;
+    // Only show toast if it's not a user cancellation (handled in downloadAndShareInvoice via failOnCancel)
+    if (error.message !== "User did not share") {
+      toast.error(error.message || "Invoice generation failed");
+    }
+    // We log it but don't necessarily re-throw if we handled the UI feedback
+    console.log("Invoice Flow Error:", error);
   }
 };

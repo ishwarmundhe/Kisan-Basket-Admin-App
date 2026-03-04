@@ -26,6 +26,7 @@ const useStyle = (theme) =>
       StyleSheet.create({
         table: {
           borderRadius: 8,
+          overflow: "hidden", // Ensures rounded corners apply correctly
         },
         header: {
           backgroundColor: theme.primary || "#6200ee",
@@ -33,13 +34,18 @@ const useStyle = (theme) =>
           alignItems: "center",
         },
         headerText: {
-          color: "#fff",
+          color: "#ffffff",
           fontWeight: "bold",
         },
         row: {
-          backgroundColor: "#f9f9f9",
+          backgroundColor: theme.text, // Dark earthy brown background so white text is readable
           justifyContent: "center",
           alignItems: "center",
+          borderBottomWidth: 1,
+          borderBottomColor: theme.border,
+        },
+        cellText: {
+          color: "#000000", // Forcing the text color to be white
         },
       }),
     [theme]
@@ -74,13 +80,22 @@ const OrderTable = ({ orderLines = [], onDeleteProduct }) => {
           const total = item.amount * item.quantity;
           return (
             <DataTable.Row key={item.id} style={styles.row}>
-              <DataTable.Cell style={{ width: TABLE_COLUMNS[0].width }}>
+              <DataTable.Cell 
+                style={{ width: TABLE_COLUMNS[0].width }}
+                textStyle={styles.cellText}
+              >
                 {index + 1}
               </DataTable.Cell>
-              <DataTable.Cell style={{ width: TABLE_COLUMNS[1].width }}>
+              <DataTable.Cell 
+                style={{ width: TABLE_COLUMNS[1].width }}
+                textStyle={styles.cellText}
+              >
                 {item.productName}
               </DataTable.Cell>
-              <DataTable.Cell style={{ width: TABLE_COLUMNS[2].width }}>
+              <DataTable.Cell 
+                style={{ width: TABLE_COLUMNS[2].width }}
+                textStyle={styles.cellText}
+              >
                 {item.variantName}
               </DataTable.Cell>
               <DataTable.Cell
@@ -90,13 +105,22 @@ const OrderTable = ({ orderLines = [], onDeleteProduct }) => {
                   justifyContent: "center",
                   alignItems: "center",
                 }}
+                textStyle={styles.cellText}
               >
                 {item.quantity}
               </DataTable.Cell>
-              <DataTable.Cell numeric style={{ width: TABLE_COLUMNS[4].width }}>
+              <DataTable.Cell 
+                numeric 
+                style={{ width: TABLE_COLUMNS[4].width }}
+                textStyle={styles.cellText}
+              >
                 {item.amount}
               </DataTable.Cell>
-              <DataTable.Cell numeric style={{ width: TABLE_COLUMNS[5].width }}>
+              <DataTable.Cell 
+                numeric 
+                style={{ width: TABLE_COLUMNS[5].width }}
+                textStyle={styles.cellText}
+              >
                 {total}
               </DataTable.Cell>
               <DataTable.Cell
@@ -107,7 +131,8 @@ const OrderTable = ({ orderLines = [], onDeleteProduct }) => {
                 }}
               >
                 <TouchableOpacity onPress={() => onDeleteProduct(item.id)}>
-                  <Ionicons name="trash-outline" size={20} color="#941B00" />
+                  {/* Changed icon color to a slightly brighter red to pop against the dark row */}
+                  <Ionicons name="trash-outline" size={20} color="#ff6b6b" /> 
                 </TouchableOpacity>
               </DataTable.Cell>
             </DataTable.Row>

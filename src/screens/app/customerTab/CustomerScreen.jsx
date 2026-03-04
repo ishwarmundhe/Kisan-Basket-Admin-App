@@ -21,24 +21,29 @@ const useStyle = (theme) => {
   return useMemo(() => {
     return StyleSheet.create(
       {
+        // 1. The Style Object
         fab: {
           position: "absolute",
           right: 20,
           bottom: 30,
-          backgroundColor: theme.textSecondary,
+          backgroundColor: "#18181b",
+          borderWidth: 1,
+          borderColor: "#27272a",
+
           width: 60,
           height: 60,
           borderRadius: 30,
           justifyContent: "center",
           alignItems: "center",
-          elevation: 5,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
+          elevation: 6,
+          shadowColor: "#000000", 
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
         },
+        fabIconColor: "#fafafa",
       },
-      [theme]
+      [theme],
     );
   });
 };

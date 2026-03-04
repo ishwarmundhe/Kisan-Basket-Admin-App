@@ -261,7 +261,7 @@ const PerformanceChart = () => {
           }}
         >
           <Text style={{ color: "white" }}>
-            Start Date: {moment(startDate).format("YYYY-MM-DD")}
+            Start Date: {moment(startDate).format("DD-MM-YYYY")}
           </Text>
         </TouchableOpacity>
 
@@ -278,7 +278,7 @@ const PerformanceChart = () => {
           }}
         >
           <Text style={{ color: "white" }}>
-            End Date: {moment(endDate).format("YYYY-MM-DD")}
+            End Date: {moment(endDate).format("DD-MM-YYYY")}
           </Text>
         </TouchableOpacity>
 
@@ -293,7 +293,7 @@ const PerformanceChart = () => {
             marginBottom: 16,
           }}
         >
-          <Text style={{ color: "white", fontWeight: "bold" }}>{`${
+          <Text style={{ color: "black", fontWeight: "bold" }}>{`${
             loading ? "...loading" : "Fetch Orders"
           }`}</Text>
         </TouchableOpacity>
@@ -343,7 +343,7 @@ const PerformanceChart = () => {
             marginBottom: 16,
           }}
         >
-          Performance
+Total Order Count
         </Text>
 
         <PieChart

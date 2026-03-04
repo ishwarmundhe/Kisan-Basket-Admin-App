@@ -59,12 +59,13 @@ const useStyle = (theme) =>
           paddingHorizontal: 16,
           paddingVertical: 8,
           borderRadius: 16,
+          backgroundColor: theme.primary, // Zinc 900
           borderColor: theme.border,
           borderWidth: 1,
           marginRight: 8,
         },
         selectedCategoryItem: {
-          backgroundColor: theme.textSecondary,
+          backgroundColor: theme.primary, // Zinc 900
           borderColor: theme.border,
         },
         categoryText: {
@@ -131,7 +132,7 @@ const useStyle = (theme) =>
           fontWeight: "600",
         },
       }),
-    [theme]
+    [theme],
   );
 
 const ProductListScreen = ({ navigation }) => {

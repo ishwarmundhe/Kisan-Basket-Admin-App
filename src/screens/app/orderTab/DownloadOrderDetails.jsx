@@ -23,110 +23,149 @@ import { colors } from "../../../constant/Colors";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../constant/ThemeContext";
 import RNFetchBlob from "react-native-blob-util";
-
 const useStyle = (theme) => {
   return useMemo(() => {
-    return StyleSheet.create(
-      {
-        header: {
-          fontWeight: "bold",
-          fontSize: 16,
-          marginBottom: 10,
-          color: theme.heading,
-        },
-        dateInput: {
-          flex: 1,
-          padding: 12,
-          borderWidth: 1,
-          borderColor: theme.border,
-          borderRadius: 8,
-          marginBottom: 20,
-        },
-        datePickerStyle: {
-          color: theme.text,
-          fontWeight: "500",
-        },
-        dateSection: { marginBottom: 25 },
-        dateHeader: {
-          fontSize: 17,
-          fontWeight: "bold",
-          marginBottom: 6,
-          color: theme.heading,
-        },
-        slotHeader: {
-          fontSize: 14,
-          fontWeight: "600",
-          marginBottom: 10,
-          color: theme.text,
-        },
-        card: {
-          flexDirection: "row",
-          justifyContent: "space-between",
-          borderWidth: 1,
-          borderColor: theme.border,
-          backgroundColor: theme.primary,
-          borderRadius: 10,
-          padding: 10,
-          marginBottom: 12,
-          gap: 10,
-        },
-        title: { fontWeight: "bold", fontSize: 15, color: theme.heading },
-        subText: { fontSize: 12, color: theme.text, marginTop: 2 },
-        label: { marginTop: 8, fontSize: 12, color: theme.text },
-        inputRow: {
-          flexDirection: "row",
-          alignItems: "center",
-          borderWidth: 1,
-          borderColor: theme.border,
-          borderRadius: 6,
-          marginTop: 4,
-          width: 130,
-          paddingHorizontal: 8,
-        },
-        dollar: { marginRight: 4, color: theme.text },
-        input: {
-          flex: 1,
-          paddingVertical: 4,
-          fontSize: 14,
-          color: theme.text,
-        },
-        updateBtn: {
-          width: "100%",
-          padding: 10,
-          borderRadius: 8,
-          marginVertical: 15,
-        },
-        downloadBtn: {
-          backgroundColor: theme.textSecondary,
-          padding: 16,
-          borderRadius: 10,
-          alignItems: "center",
-          marginVertical: 16,
-        },
-        applyBtn: {
-          backgroundColor: theme.textSecondary,
-          padding: 14,
-          borderRadius: 10,
-          marginBottom: 15,
-          alignItems: "center",
-        },
-        disabledBtn: {
-          backgroundColor: "#AAAAAA",
-        },
-        emptyContainer: {
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 20,
-        },
-        emptyText: {
-          fontSize: 16,
-          color: "#666",
-        },
+    return StyleSheet.create({
+      container: {
+        flex: 1,
+        backgroundColor: theme.background,
+        paddingHorizontal: 16,
       },
-      [theme]
-    );
-  });
+      header: {
+        fontWeight: "bold",
+        fontSize: 16,
+        marginBottom: 10,
+        color: theme.heading,
+        marginTop: 10,
+      },
+      dateInput: {
+        flex: 1,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 8,
+        marginBottom: 10,
+        backgroundColor: theme.primary,
+        justifyContent: "center",
+      },
+      datePickerStyle: {
+        color: theme.text,
+        fontWeight: "500",
+      },
+      dateSection: { marginBottom: 25 },
+      dateHeader: {
+        fontSize: 17,
+        fontWeight: "bold",
+        marginBottom: 6,
+        color: theme.heading,
+      },
+      slotHeader: {
+        fontSize: 14,
+        fontWeight: "600",
+        marginBottom: 10,
+        color: theme.secondary,
+      },
+      card: {
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.primary,
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 12,
+      },
+      title: {
+        fontWeight: "bold",
+        fontSize: 16,
+        color: theme.heading,
+        marginBottom: 4,
+      },
+      subText: { fontSize: 13, color: theme.text, marginBottom: 2 },
+
+      // Inputs Section
+      inputsContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: 10,
+        gap: 12,
+      },
+      inputWrapper: {
+        flex: 1,
+      },
+      label: {
+        marginBottom: 6,
+        fontSize: 12,
+        color: theme.secondary,
+        fontWeight: "500",
+      },
+      inputRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 6,
+        paddingHorizontal: 10,
+        height: 40,
+        backgroundColor: theme.background,
+      },
+      dollar: { marginRight: 4, color: theme.text, fontSize: 14 },
+      input: {
+        flex: 1,
+        paddingVertical: 0, // Fix alignment on Android
+        fontSize: 14,
+        color: theme.text,
+        height: "100%",
+      },
+
+      // Buttons
+      updateBtn: {
+        backgroundColor: theme.primary,
+        paddingVertical: 10,
+        borderRadius: 8,
+        marginTop: 16,
+        alignItems: "center",
+        justifyContent: "center",
+      },
+      updateBtnText: {
+        color: theme.background, // Inverted text color
+        fontWeight: "600",
+      },
+      downloadBtn: {
+        backgroundColor: theme.primary,
+        padding: 16,
+        borderRadius: 10,
+        alignItems: "center",
+        marginVertical: 16,
+      },
+      applyBtn: {
+        backgroundColor: theme.primary,
+        padding: 14,
+        borderRadius: 10,
+        marginVertical: 15,
+        alignItems: "center",
+      },
+      btnText: {
+        color: theme.background,
+        fontWeight: "600",
+        fontSize: 15,
+      },
+      disabledBtn: {
+        backgroundColor: theme.border,
+        opacity: 0.7,
+      },
+      emptyContainer: {
+        padding: 40,
+        alignItems: "center",
+      },
+      emptyText: {
+        fontSize: 16,
+        color: theme.primary,
+      },
+      row: {
+        flexDirection: "row",
+        gap: 10,
+      },
+    });
+  }, [theme]);
 };
 
 const ProductPriceUpdateScreen = () => {
@@ -174,7 +213,7 @@ const ProductPriceUpdateScreen = () => {
 
       filteredData.forEach((item) => {
         const slotKey = Object.keys(item).find(
-          (key) => key !== "delivery_date"
+          (key) => key !== "delivery_date",
         );
         const products = item[slotKey] || [];
 
@@ -231,14 +270,16 @@ const ProductPriceUpdateScreen = () => {
 
       setShowPicker({ visible: false, field: null });
       setSpecificDate(
-        updates.specificDate !== undefined ? updates.specificDate : specificDate
+        updates.specificDate !== undefined
+          ? updates.specificDate
+          : specificDate,
       );
       setStartDate(
-        updates.startDate !== undefined ? updates.startDate : startDate
+        updates.startDate !== undefined ? updates.startDate : startDate,
       );
       setEndDate(updates.endDate !== undefined ? updates.endDate : endDate);
     },
-    [showPicker.field, specificDate, startDate, endDate]
+    [showPicker.field, specificDate, startDate, endDate],
   );
 
   const updatePrice = useCallback(
@@ -255,13 +296,13 @@ const ProductPriceUpdateScreen = () => {
         await UpdatePurchasePrice(
           productId,
           parseFloat(priceMap[productId]),
-          parseFloat(sellingPrice[productId])
+          parseFloat(sellingPrice[productId]),
         );
 
         setFilteredData((prevData) =>
           prevData.map((item) => {
             const slotKey = Object.keys(item).find(
-              (key) => key !== "delivery_date"
+              (key) => key !== "delivery_date",
             );
             if (!item[slotKey].some((product) => product.id === productId)) {
               return item;
@@ -276,10 +317,10 @@ const ProductPriceUpdateScreen = () => {
                       purchase_price: parseFloat(priceMap[productId]),
                       selling_price: parseFloat(sellingPrice[productId]),
                     }
-                  : product
+                  : product,
               ),
             };
-          })
+          }),
         );
 
         toast.success("Price updated successfully");
@@ -291,7 +332,7 @@ const ProductPriceUpdateScreen = () => {
         setSelectProductId(null);
       }
     },
-    [priceMap, sellingPrice]
+    [priceMap, sellingPrice],
   );
 
   const applyDateFilter = useCallback(async () => {
@@ -303,7 +344,7 @@ const ProductPriceUpdateScreen = () => {
         const response = await SpcificDateRangeData(
           dateStringStart,
           dateStringEnd,
-          token
+          token,
         );
         setFilteredData(response);
       } catch (err) {
@@ -418,10 +459,14 @@ const ProductPriceUpdateScreen = () => {
               </View>
             </View>
             <TouchableOpacity
-              style={[
-                styles.updateBtn,
-                { backgroundColor: isUpdating ? "gray" : theme.textSecondary },
-              ]}
+              style={{
+                backgroundColor: isUpdating ? "gray" : theme.primary,
+                borderWidth: 1, // Sets the border thickness
+                borderColor: theme.border, // Sets the border color (or use 'gray'/'#ccc')
+                borderRadius: 8,
+                padding: 10,
+                marginTop: 6,
+              }}
               onPress={() => updatePrice(product.id)}
               disabled={isUpdating}
             >
@@ -444,7 +489,7 @@ const ProductPriceUpdateScreen = () => {
       sellingPrice,
       selectProductId,
       updatePrice,
-    ]
+    ],
   );
 
   const renderDateSection = useCallback(
@@ -461,7 +506,7 @@ const ProductPriceUpdateScreen = () => {
         </View>
       );
     },
-    [renderProductItem]
+    [renderProductItem],
   );
 
   const datePickerValue = useMemo(() => {

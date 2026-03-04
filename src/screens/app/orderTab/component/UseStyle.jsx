@@ -1,164 +1,184 @@
+import { StyleSheet } from "react-native";
 
-import { StyleSheet , Dimensions} from "react-native";
-import { useMemo } from "react";
-export const useStyle = (theme) => {
-  return useMemo(() => {
-  return  StyleSheet.create(
-      {
-        container: {
-          marginHorizontal: 10,
-          // paddingTop: 15,
-          flex: 1,
-        },
-        tableContainer: {
-          flexGrow: 1,
-        },
-        selectionText: {
-          flex: 1,
-          fontSize: 18,
-          color: theme.text,
-        },
-        selectionInput: {
-          flexDirection: "row",
-          borderWidth: 1,
-          borderRadius: 8,
-          alignItems: "center",
-          margin: 10,
-          padding: 5,
-          borderColor: theme.border,
-        },
-        row: {
-          flexDirection: "row",
-          backgroundColor: theme.primary,
-          borderBottomWidth: 1,
-          borderColor: theme.border,
-        },
-        headerRow: {
-          backgroundColor: theme.textSecondary,
-        },
-        cell: {
-          minWidth: 120,
-          padding: 10,
-          borderRightWidth: 1,
-          borderColor: theme.border,
-          color: theme.text,
-        },
-        numberCell: {
-          minWidth: 20,
-          padding: 10,
-          borderRightWidth: 1,
-          borderColor: theme.border,
-          color: theme.text,
-        },
-        headerCell: {
-          fontWeight: "bold",
-          color: theme.heading,
-        },
-        deleteButton: {
-          justifyContent: "center",
-          alignItems: "center",
-          flex: 1,
-        },
-        confirmButton: {
-          backgroundColor: theme.textSecondary,
-          padding: 12,
-          borderRadius: 8,
-          alignItems: "center",
-          marginBottom: 10,
-          marginHorizontal: 10,
-        },
-        confirmButtonText: {
-          color: theme.heading,
-          fontSize: 16,
-          fontWeight: "500",
-        },
-        actionButtonContainer: {
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginBottom: 20,
-        },
-        actionButton: {
-          borderWidth: 1,
-          borderColor: theme.border,
-          paddingHorizontal: 25,
-          borderRadius: 8,
-          paddingVertical: 12,
-          backgroundColor: theme.textSecondary,
-          alignSelf: "flex-end",
-        },
-        buttonText: {
-          textAlign: "center",
-          fontSize: 14,
-          color: theme.text,
-          fontWeight: "700",
-        },
-        statusBadge: {
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#e28743",
-          paddingHorizontal: 10,
-          paddingVertical: 2,
-          borderRadius: 50,
-        },
-        statusText: {
-          color: theme.text,
-        },
-        emptyText: {
-          margin: 10,
-          fontStyle: "italic",
-          color: theme.text,
-        },
-        modalContainer: {
-          backgroundColor: theme.primary,
-          paddingTop: 20,
-          borderColor: theme.border,
-          borderWidth: 1,
-          margin: 20,
-          borderRadius: 8,
-        },
-        slotItem: {
-          backgroundColor: "transparent",
-          marginTop: 8,
-        },
-        slotText: {
-          textAlign: "center",
-          fontSize: 16,
-          color: theme.text,
-        },
-        selectedSlotText: {
-          fontWeight: "bold",
-        },
-        modalButtons: {
-          flexDirection: "row",
-          gap: 5,
-          marginTop: 50,
-        },
-        modalButton: {
-          backgroundColor: theme.textSecondary,
-          padding: 12,
-          borderRadius: 8,
-          alignItems: "center",
-        },
-        animationContainer: {
-          position: "absolute",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          right: 0,
-          height: Dimensions.get("screen").height / 2,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.text,
-          borderRadius: 10,
-          marginHorizontal: 20,
-        },
-        animation: {
-          width: 300,
-          height: 300,
-          marginBottom: 20,
-        },
-      },
-      [theme]
-    );
+export const useStyle = (theme) =>
+  StyleSheet.create({
+    container: {
+      flexGrow: 1,
+      backgroundColor: theme.background, // Zinc 950
+    },
+
+    // --- TABLE & LIST ---
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border, // Zinc 800
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      backgroundColor: theme.primary, // Zinc 900
+    },
+    headerRow: {
+      backgroundColor: theme.primary,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+      marginBottom: 8,
+    },
+    cell: {
+      flex: 1,
+      color: theme.text, // Zinc 50
+      fontSize: 14,
+    },
+    headerCell: {
+      color: theme.heading, // White
+      fontWeight: "600",
+      fontSize: 13,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    numberCell: {
+      width: 40,
+      textAlign: "center",
+      color: theme.secondary,
+      fontWeight: "500",
+    },
+    deleteButton: {
+      padding: 8,
+    },
+
+    // --- ACTION BUTTONS (Top) ---
+    actionButtonContainer: {
+      flexDirection: "row",
+      padding: 16,
+      gap: 12,
+      backgroundColor: theme.background,
+    },
+    actionButton: {
+      flex: 1,
+      backgroundColor: theme.primary, // Zinc 900
+      borderWidth: 1,
+      borderColor: theme.border, // Zinc 800
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    buttonText: {
+      color: theme.text, // White
+      fontWeight: "600",
+      fontSize: 14,
+    },
+    statusBadge: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 8,
+      backgroundColor: theme.border, // Zinc 800
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    statusText: {
+      color: theme.text,
+      fontWeight: "700",
+      textTransform: "uppercase",
+    },
+
+    // --- INPUTS (Select Customer, Date, Slot) ---
+    selectionInput: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: theme.primary, // Zinc 900
+      borderWidth: 1,
+      borderColor: theme.border, // Zinc 800
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      height: 50,
+      marginBottom: 12,
+      marginHorizontal: 16,
+    },
+    selectionText: {
+      flex: 1,
+      color: theme.text, // White
+      fontSize: 15,
+      fontWeight: "500",
+    },
+
+    // --- CONFIRM BUTTON (Bottom) ---
+    confirmButton: {
+      backgroundColor: theme.textSecondary, // White Background
+      marginHorizontal: 16,
+      marginTop: 8,
+      marginBottom: 30,
+      height: 50,
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    confirmButtonText: {
+      color: theme.background, // Black Text (Inverted)
+      fontWeight: "700",
+      fontSize: 16,
+    },
+
+    // --- MODALS ---
+    modalContainer: {
+      backgroundColor: theme.primary, // Zinc 900
+      margin: 20,
+      borderRadius: 12,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: theme.border, // Zinc 800
+    },
+    slotItem: {
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    slotText: {
+      color: theme.text,
+      fontSize: 16,
+      textAlign: "center",
+    },
+    selectedSlotText: {
+      color: theme.deliveryDate, // Green
+      fontWeight: "bold",
+    },
+    modalButtons: {
+      flexDirection: "row",
+      marginTop: 24,
+      gap: 12,
+    },
+    modalButton: {
+      flex: 1,
+      backgroundColor: theme.border, // Zinc 800 (Secondary Action)
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: "center",
+    },
+
+    // --- EXTRAS ---
+    emptyText: {
+      color: theme.secondary,
+      textAlign: "center",
+      marginTop: 60,
+      fontSize: 16,
+    },
+    animationContainer: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(0,0,0,0.8)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1000,
+    },
+    animation: {
+      width: 200,
+      height: 200,
+    },
+    shimmerCard: {
+      backgroundColor: theme.primary,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 12,
+    },
   });
-};

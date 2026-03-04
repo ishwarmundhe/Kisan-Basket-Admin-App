@@ -39,10 +39,29 @@ const useStyle = (theme) =>
           justifyContent: "center",
           alignItems: "center",
         },
-        fab: { backgroundColor: theme.primary },
+        fab: {
+          position: "absolute",
+          right: 20,
+          bottom: 30,
+          backgroundColor: "#18181b",
+          borderWidth: 1,
+          borderColor: "#27272a",
+
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          justifyContent: "center",
+          alignItems: "center",
+          elevation: 6,
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
+        },
+        fabIconColor: "#fafafa",
         disabledButton: { opacity: 0.6 },
       }),
-    [theme]
+    [theme],
   );
 
 const GenerateCustomerInvoice = ({ order_id, status, refetchOrder }) => {
@@ -50,7 +69,7 @@ const GenerateCustomerInvoice = ({ order_id, status, refetchOrder }) => {
   const styles = useStyle(theme);
 
   const [confirmOrderMutation, { loading: isConfirming }] = useMutation(
-    CONFIRM_ORDER_MUTATION
+    CONFIRM_ORDER_MUTATION,
   );
   const [generateCustomerInvoice, { loading: isGenerating }] =
     useMutation(GENERATE_INVOICE);
@@ -95,26 +114,33 @@ const GenerateCustomerInvoice = ({ order_id, status, refetchOrder }) => {
       throw new Error(`Invalid invoice URL: ${invoiceUrl}`);
     }
 
+    const { config, fs } = RNFetchBlob;
     const filename = `invoice_${Date.now()}.pdf`;
-    const path = `${RNFetchBlob.CachesDirectoryPath}/${filename}`;
+    const path = `${fs.dirs.CacheDir}/${filename}`;
 
     try {
-      const downloadRes = await RNFetchBlob.downloadFile({
-        fromUrl: invoiceUrl,
-        toFile: path,
-      }).promise;
+      const res = await config({
+        fileCache: true,
+        path: path,
+      }).fetch("GET", invoiceUrl);
 
-      if (downloadRes.statusCode !== 200)
-        throw new Error("Failed to download invoice");
+      const status = res.info().status;
+
+      if (status !== 200) {
+        throw new Error(
+          "Failed to download invoice: Server returned " + status,
+        );
+      }
 
       await Share.open({
-        url: `file://${path}`,
+        url: `file://${res.path()}`,
         type: "application/pdf",
-        showAppsToView: true,
         title: "Share Invoice",
+        failOnCancel: false,
       });
     } catch (e) {
-      throw e;
+      console.error("Download/Share Error:", e);
+      throw new Error("Could not download or share invoice.");
     }
   };
 

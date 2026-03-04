@@ -1,4 +1,5 @@
-package com.kisan_basket_adminapp
+package com.kisanbasket.adminapp
+
 
 import android.app.Application
 import com.facebook.react.PackageList

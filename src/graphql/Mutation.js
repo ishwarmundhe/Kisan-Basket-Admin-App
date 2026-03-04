@@ -399,3 +399,77 @@ export const UPDATE_CUSTOMER_INFO = gql`
     }
   }
 `;
+
+export const ORDER_CONFIRM = gql`
+  mutation OrderConfirm($id: ID!) {
+    orderConfirm(id: $id) {
+      errors {
+        field
+        message
+      }
+      order {
+        id
+        status
+      }
+    }
+  }
+`;
+
+
+
+export const ORDER_MARK_AS_PAID = gql`
+  mutation OrderMarkAsPaid($id: ID!) {
+    orderMarkAsPaid(id: $id) {
+      errors {
+        field
+        message
+      }
+      order {
+        id
+        isPaid
+        paymentStatus
+      }
+    }
+  }
+`;
+
+export const FULFILL_ORDER = gql`
+  mutation FulfillOrder($orderId: ID!, $input: OrderFulfillInput!) {
+    orderFulfill(order: $orderId, input: $input) {
+      errors {
+        field
+        message
+      }
+      order {
+        id
+        status
+      }
+    }
+  }
+`;
+
+// Add to ../../../graphql/Query.js
+export const WAREHOUSE_LIST = gql`
+  query WarehouseList {
+    warehouses(first: 20) {
+      edges {
+        node {
+          id
+          name
+        }
+      }
+    }
+  }
+`;
+
+export const ORDER_FULFILL_DATA = gql`
+  query OrderFulfillData($orderId: ID!) {
+    order(id: $orderId) {
+      id
+      lines {
+        id
+        quantityToFulfill
+      }
+    }
+  }
+`;

@@ -5,6 +5,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../constant/ThemeContext";
 import { useMemo } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ArrowBigLeft } from "lucide-react-native";
 
 const useStyle = (theme) => {
   return useMemo(() => {

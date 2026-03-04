@@ -33,113 +33,141 @@ const userStyle = (theme) => {
     return StyleSheet.create({
       container: {
         flexGrow: 1,
+        backgroundColor: theme.background, // Zinc 950
       },
-      subtitle: { fontSize: 12, color: theme.text, marginVertical: 8 },
+      subtitle: {
+        fontSize: 13,
+        color: theme.secondary, // Zinc 400 (Muted)
+        marginVertical: 8,
+      },
+
+      // --- SEARCH BAR ---
       searchContainer: {
         flexDirection: "row",
         alignItems: "center",
+        backgroundColor: theme.primary, // Zinc 900
         borderWidth: 1,
-        borderColor: "#ddd",
+        borderColor: theme.border, // Zinc 800
         borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 12,
+        paddingVertical: Platform.OS === "ios" ? 10 : 4,
       },
       searchInput: {
         flex: 1,
         paddingHorizontal: 8,
-        color: theme.text,
+        color: theme.text, // Zinc 50
+        fontSize: 15,
       },
-      productCard: {
-        borderWidth: 1,
-        borderColor: theme.border,
-        borderRadius: 8,
+      voiceButton: {
         padding: 8,
-        marginVertical: 8,
+        marginLeft: 5,
+        zIndex: 1,
+      },
+
+      // --- PRODUCT CARDS ---
+      productCard: {
+        backgroundColor: theme.primary, // Zinc 900
+        borderWidth: 1,
+        borderColor: theme.border, // Zinc 800
+        borderRadius: 12,
+        padding: 12,
+        marginVertical: 6,
       },
       productHeader: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 8,
+        marginBottom: 12,
       },
       productImage: {
-        width: 40,
-        height: 40,
-        borderRadius: 4,
-        marginRight: 8,
+        width: 44,
+        height: 44,
+        borderRadius: 6,
+        marginRight: 10,
+        backgroundColor: theme.background,
       },
       fallbackImage: {
-        width: 40,
-        height: 40,
-        borderRadius: 4,
-        marginRight: 8,
-        backgroundColor: "#f0f0f0",
+        width: 44,
+        height: 44,
+        borderRadius: 6,
+        marginRight: 10,
+        backgroundColor: theme.border, // Zinc 800
         justifyContent: "center",
         alignItems: "center",
       },
       productName: {
-        fontWeight: "500",
-        color: theme.text,
+        fontSize: 16,
+        fontWeight: "600",
+        color: theme.heading, // White
       },
       productLocal: {
         fontSize: 12,
-        color: theme.text,
+        color: theme.secondary, // Muted
       },
       variantRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 8,
+        paddingVertical: 10,
         borderTopWidth: 1,
-        borderTopColor: "gray",
+        borderTopColor: theme.border, // Zinc 800
       },
       price: {
-        fontWeight: "500",
+        fontWeight: "600",
         color: theme.text,
+        fontSize: 14,
       },
+
+      // --- FOOTER & BUTTONS ---
       footer: {
         backgroundColor: theme.primary,
         flexDirection: "row",
         justifyContent: "space-between",
-        paddingVertical: 12,
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: theme.border,
       },
       backButton: {
         flex: 1,
+        backgroundColor: theme.primary,
         borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: 6,
+        borderColor: theme.border,
+        borderRadius: 8,
         padding: 12,
-        marginRight: 8,
+        marginRight: 10,
         alignItems: "center",
+        justifyContent: "center",
       },
       backButtonText: {
-        fontWeight: "500",
+        fontWeight: "600",
         color: theme.text,
       },
       confirmButton: {
         flex: 1,
-        backgroundColor: "#2E7D32",
+        backgroundColor: theme.textSecondary, // White Background (Inverted)
         padding: 12,
         borderRadius: 8,
         alignItems: "center",
+        justifyContent: "center",
       },
       confirmButtonText: {
-        color: theme.text,
+        color: theme.background, // Black Text on White Button
         fontSize: 16,
-        fontWeight: "500",
+        fontWeight: "700",
       },
+
+      // --- VOICE/RECORDING ---
       recordingIndicator: {
-        backgroundColor: "#f8d7da",
-        padding: 8,
-        borderRadius: 4,
-        marginTop: 4,
+        backgroundColor: "rgba(239, 68, 68, 0.15)", // Subtle Red tint
+        padding: 10,
+        borderRadius: 8,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: theme.error,
       },
       recordingText: {
-        color: "#721c24",
+        color: theme.error, // Red-500
         textAlign: "center",
-      },
-      voiceButton: {
-        padding: 8, // Add padding
-        marginLeft: 5,
-        zIndex: 1, // Ensure it's above other elements
+        fontWeight: "500",
+        fontSize: 13,
       },
     });
   }, [theme]);

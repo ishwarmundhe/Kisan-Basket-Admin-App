@@ -16,8 +16,7 @@ const AuthStack = () => {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="Auth" component={AuthScreen} />
-
+      {/* <Stack.Screen name="Auth" component={AuthScreen} /> */}
       <Stack.Screen name="AdminLogin" component={LoginScreen} />
     </Stack.Navigator>
   );

@@ -4,11 +4,16 @@ import "react-native-reanimated";
 import { enableScreens } from "react-native-screens";
 import "./global.css";
 
-// Call enableScreens() immediately after import, before any components
 enableScreens();
 
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { View, Platform, StatusBar, StyleSheet } from "react-native";
+import {
+  View,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Appearance,
+} from "react-native";
 import { client } from "./src/client/client";
 import { AuthProvider } from "./src/constant/AuthProvider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -21,19 +26,24 @@ import ErrorBoundary from "./src/errorBoundry/ErrorBoundry";
 import { ApolloProvider } from "@apollo/client/react";
 import { Provider } from "react-redux";
 import { store } from "./src/redux/store";
+import { Toaster } from "sonner-native";
 
 const App = () => {
   const [appIsReady, setAppIsReady] = useState(false);
-  const [themeFromStorage, setThemeFromStorage] = useState(null);
+
+  const [themeName, setThemeName] = useState("dark");
 
   useEffect(() => {
     async function prepare() {
       try {
-        // Simulate loading or preloading assets
         await new Promise((resolve) => setTimeout(resolve, 1200));
-        const themeJson = await localStore.getCurrentTheme("theme");
-        const theme = themeJson ? JSON.parse(themeJson) : null;
-        setThemeFromStorage(theme);
+
+        const storedTheme = await localStore.getCurrentTheme("theme");
+
+        if (storedTheme) {
+          const cleanTheme = storedTheme.replace(/['"]+/g, "");
+          setThemeName(cleanTheme);
+        }
       } catch (e) {
         console.log("App init error:", e);
       } finally {
@@ -46,33 +56,29 @@ const App = () => {
 
   if (!appIsReady) return null;
 
-  console.log("Component Check:", {
-    ErrorBoundary: typeof ErrorBoundary,
-    Navigation: typeof Navigation,
-    ThemeProvider: typeof ThemeProvider,
-    AuthProvider: typeof AuthProvider,
-    GestureHandlerRootView: typeof GestureHandlerRootView,
-    SafeAreaProvider: typeof SafeAreaProvider,
-    ApolloProvider: typeof ApolloProvider,
-    KeyboardProvider: typeof KeyboardProvider,
-  });
+  const statusBarStyle =
+    themeName === "dark" ? "light-content" : "dark-content";
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
         <View style={styles.root}>
+          {/* DYNAMIC STATUS BAR */}
           <StatusBar
-            barStyle="light-content"
+            animated={true}
+            barStyle={statusBarStyle}
             translucent={Platform.OS === "android"}
             backgroundColor="transparent"
           />
+
           <ApolloProvider client={client}>
             <Provider store={store}>
-              <ThemeProvider initialTheme={themeFromStorage}>
+              <ThemeProvider initialTheme={themeName}>
                 <AuthProvider>
                   <KeyboardProvider>
                     <ErrorBoundary>
                       <Navigation />
+                      <Toaster />
                     </ErrorBoundary>
                   </KeyboardProvider>
                 </AuthProvider>

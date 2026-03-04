@@ -1,23 +1,48 @@
 import { gql } from "@apollo/client";
 
-export const GET_PRODUCTS = gql`
-  query MyQuery{
-    products(search: "", first: 100) {
-    pageInfo {
-      startCursor
-      endCursor
-    }
-    totalCount
-    edges {
-      node {
-        id
-        name
-        images {
-          url
+export const WAREHOUSE_LIST = gql`
+  query WarehouseList {
+    warehouses(first: 20) {
+      edges {
+        node {
+          id
+          name
         }
       }
     }
   }
+`;
+
+export const ORDER_FULFILL_DATA = gql`
+  query OrderFulfillData($orderId: ID!) {
+    order(id: $orderId) {
+      id
+      lines {
+        id
+        quantityToFulfill
+      }
+    }
+  }
+`;
+
+export const GET_PRODUCTS = gql`
+  query MyQuery {
+    products(search: "", first: 100) {
+      pageInfo {
+        startCursor
+        endCursor
+      }
+      totalCount
+      edges {
+        node {
+          id
+          name
+          images {
+            url
+          }
+        }
+      }
+    }
   }
 `;
 
@@ -98,8 +123,8 @@ export const PRODUCT_LIST_QUERY = gql`
             }
           }
           media {
-          url
-        }
+            url
+          }
         }
       }
       pageInfo {
@@ -111,60 +136,93 @@ export const PRODUCT_LIST_QUERY = gql`
 `;
 
 export const ORDER_LIST_QUERY = gql`
-  query OrderList($first: Int, $after: String, $last: Int, $before: String, $filter: OrderFilterInput, $sort: OrderSortingInput) {
-  orders(
-    before: $before
-    after: $after
-    first: $first
-    last: $last
-    filter: $filter
-    sortBy: $sort
+  query OrderList(
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $filter: OrderFilterInput
+    $sort: OrderSortingInput
   ) {
-    edges {
-      node {
-        __typename
-        created
-        id
-        number
-        paymentStatus
-        status
-        total {
+    orders(
+      before: $before
+      after: $after
+      first: $first
+      last: $last
+      filter: $filter
+      sortBy: $sort
+    ) {
+      edges {
+        node {
           __typename
-          gross {
-            __typename
-            amount
-            currency
+          created
+          id
+          number
+          paymentStatus
+          status
+          isPaid
+          payments {
+            id
+            chargeStatus
           }
-        }
-        userEmail
-        chargeStatus
-        deliveryDate
-        deliverySlot
-        billingAddress {
-          firstName
-          phone
-          lastName
-          streetAddress1
-        }
-        canFinalize
-        errors {
-          code
-          message
+          lines {
+            id
+            quantity
+            variant {
+              id
+              product {
+                name
+                id
+                collections {
+                  name
+                  id
+                }
+                category {
+                  id
+                  name
+                }
+              }
+            }
+            productName
+          }
+          total {
+            __typename
+            gross {
+              __typename
+              amount
+              currency
+            }
+          }
+          userEmail
+          chargeStatus
+          deliveryDate
+          deliverySlot
+          billingAddress {
+            firstName
+            phone
+            lastName
+            streetAddress1
+          }
+          canFinalize
+          errors {
+            code
+            message
+          }
+          collectionPointName
         }
       }
+      pageInfo {
+        hasPreviousPage
+        hasNextPage
+        startCursor
+        endCursor
+      }
+      totalCount
     }
-    pageInfo {
-      hasPreviousPage
-      hasNextPage
-      startCursor
-      endCursor
-    }
-    totalCount
   }
-}
 `;
 export const ORDER_DETAILS_WITH_METADATA = gql`
-query OrderDetailsWithMetadata($id: ID!) {
+  query OrderDetailsWithMetadata($id: ID!) {
     order(id: $id) {
       ...OrderDetailsWithMetadata
     }
@@ -234,88 +292,94 @@ query OrderDetailsWithMetadata($id: ID!) {
 `;
 
 export const SEARCH_CUSTOMER_QUERY = gql`
- query SearchCustomers($after: String, $first: Int!, $query: String!) {
-  search: customers(after: $after, first: $first, filter: {search: $query}) {
-    edges {
-      node {
-        id
-        firstName
-        lastName
-        phoneNumber
-        addresses {
-          streetAddress1
+  query SearchCustomers($after: String, $first: Int!, $query: String!) {
+    search: customers(
+      after: $after
+      first: $first
+      filter: { search: $query }
+    ) {
+      edges {
+        node {
+          id
+          firstName
+          lastName
+          phoneNumber
+          addresses {
+            streetAddress1
+          }
         }
       }
+      pageInfo {
+        hasNextPage
+      }
+      totalCount
     }
-    pageInfo {
-      hasNextPage
-    }
-    totalCount
   }
-}
 `;
 
 export const CUSTOMER_ADDRESSES = gql`
-query customerAddress($id:ID!) {
-  user(id:$id) {
-    addresses {
-      city
-      firstName
-      lastName
-      country {
-        code
+  query customerAddress($id: ID!) {
+    user(id: $id) {
+      addresses {
+        city
+        firstName
+        lastName
+        country {
+          code
+        }
+        phone
+        companyName
+        postalCode
+        cityArea
+        streetAddress1
+        streetAddress2
       }
-      phone
-      companyName
-      postalCode
-      cityArea
-      streetAddress1
-      streetAddress2
-    }
-    defaultBillingAddress {
-      city
-      firstName
-      lastName
-      phone
-      postalCode
-      companyName
-      country {
-        code
+      defaultBillingAddress {
+        city
+        firstName
+        lastName
+        phone
+        postalCode
+        companyName
+        country {
+          code
+        }
+        countryArea
+        streetAddress1
+        streetAddress2
       }
-      countryArea
-      streetAddress1
-      streetAddress2
-    }
-    defaultShippingAddress {
-      city
-      companyName
-      firstName
-      lastName
-      country {
-        code
+      defaultShippingAddress {
+        city
+        companyName
+        firstName
+        lastName
+        country {
+          code
+        }
+        phone
+        postalCode
+        countryArea
+        streetAddress1
+        streetAddress2
       }
-      phone
-      postalCode
-      countryArea
-      streetAddress1
-      streetAddress2
     }
   }
-}`;
+`;
 
 export const GET_SHIPPING_METHODS = gql`
-query GetShippingMethods($id: ID!) {
-  order(id: $id) {
-    id
-    shippingMethods {
+  query GetShippingMethods($id: ID!) {
+    order(id: $id) {
       id
-      name
-      price {
-        amount
+      shippingMethods {
+        id
+        name
+        price {
+          amount
+        }
       }
     }
   }
-}`
+`;
 
 export const GET_CATEGORIES = gql`
   query GetCategories {
@@ -331,43 +395,45 @@ export const GET_CATEGORIES = gql`
 `;
 
 export const GET_PRODUCTS_BY_CATEGORY = gql`
- query ProductsByCategory($categoryId: ID!) {
-  products(first: 100, filter: { categories: [$categoryId] }) {
-    edges {
-      node {
-        id
-        name
-        images {
-          url
+  query ProductsByCategory($categoryId: ID!) {
+    products(first: 100, filter: { categories: [$categoryId] }) {
+      edges {
+        node {
+          id
+          name
+          images {
+            url
+          }
         }
       }
     }
   }
-}
 `;
 
 export const CUSTOMER_DETAILS = gql`
-query CustomerDetails($id:ID!) {
-  user(id:$id) {
-    email
-    id
-    addresses {
-      firstName
-      lastName
+  query CustomerDetails($id: ID!) {
+    user(id: $id) {
+      email
       id
-      companyName
-      cityArea
-      city
-      phone
-      streetAddress1
-      postalCode
+      addresses {
+        firstName
+        lastName
+        id
+        companyName
+        cityArea
+        city
+        phone
+        streetAddress1
+        postalCode
+      }
     }
   }
-}`
+`;
 
-export const MONTH_TOTAL_ORDERS =  gql`
-query MyQuery($gte: Date!, $lte: Date!) {
-  orders(filter: {created: {gte: $gte, lte: $lte}}) {
-    totalCount
+export const MONTH_TOTAL_ORDERS = gql`
+  query MyQuery($gte: Date!, $lte: Date!) {
+    orders(filter: { created: { gte: $gte, lte: $lte } }) {
+      totalCount
+    }
   }
-}`
+`;

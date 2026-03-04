@@ -1,63 +1,85 @@
-// constant/ThemeContext.js
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { colors } from "./Colors";
 import { localStore } from "../localStore/LocalStore";
 
 export const ThemeContext = createContext();
 
-// Define multiple themes
+// Shadcn-like Color Palette (Zinc Variant)
 export const themes = {
-  light: {
-    name: "light",
-    background: colors.THEME_BACKGROUND,
-    primary: colors.CARD_BACKGROUND,
-    secondary: "#FF6B35",
-    text: colors.TEXT_COLOR,
-    heading: colors.HEADING_COLOR,
-    deliveryDate: "#5e9c48",
-    shareButtonColor: "#3A3A3C",
-    textSecondary: colors.PRIMARY_BUTTON_BACKGROUND,
-    logOutBackground: "#f44336",
-    cardBackground: "#FFFFFF",
-    border: colors.CARD_BORDER,
-    error: "#D32F2F",
-    success: "#388E3C",
-  },
   dark: {
     name: "dark",
-    background: "#0c1836",
-    primary: "#18284d",
-    secondary: "#FF8A65",
-    text: "#FFFFFF",
-    heading: colors.HEADING_COLOR,
-    logOutBackground: "#f44336",
-    deliveryDate: "#5e9c48",
-    shareButtonColor: "#3A3A3C",
-    textSecondary: "#517fed",
-    cardBackground: "#1E1E1E",
-    border: "#424d66",
-    error: "#F44336",
-    success: "#66BB6A",
+    // Base Layout
+    background: "#09090b", // Zinc 950 (Deep Black/Background)
+    primary: "#18181b", // Zinc 900 (Card Background/Surface)
+
+    // Text & Content
+    text: "#fafafa", // Zinc 50 (Main Text)
+    heading: "#ffffff", // Pure White
+    secondary: "#a1a1aa", // Zinc 400 (Muted Text)
+
+    // Actions & Borders
+    border: "#27272a", // Zinc 800 (Subtle Borders)
+    textSecondary: "#fafafa", // Zinc 50 (Primary Button Background - Inverted)
+    shareButtonColor: "#27272a", // Zinc 800 (Secondary Button)
+
+    // Status / Functional
+    deliveryDate: "#4ade80", // Green-400 (Success/Info)
+    logOutBackground: "#ef4444", // Red-500 (Destructive)
+    error: "#ef4444",
+    success: "#22c55e",
+
+    // Fallbacks/Extras
+    cardBackground: "#18181b",
+  },
+  light: {
+    name: "light",
+    // Base Layout
+    background: "#ffffff", // Pure White
+    primary: "#ffffff", // White (Card Background)
+
+    // Text & Content
+    text: "#09090b", // Zinc 950 (Main Text)
+    heading: "#09090b", // Zinc 900
+    secondary: "#09090b", // Zinc 500 (Muted Text)
+
+    // Actions & Borders
+    border: "#e4e4e7", // Zinc 200 (Borders)
+    textSecondary: "#18181b", // Zinc 900 (Primary Button Background)
+    shareButtonColor: "#f4f4f5", // Zinc 100 (Secondary Button)
+
+    // Status / Functional
+    deliveryDate: "#16a34a", // Green-600
+    logOutBackground: "#dc2626", // Red-600
+    error: "#dc2626",
+    success: "#16a34a",
+
+    // Fallbacks/Extras
+    cardBackground: "#ffffff",
   },
 };
 
 export const ThemeProvider = ({ children, initialTheme }) => {
-  const [currentTheme, setCurrentTheme] = useState(initialTheme || "light");
+  // Set default state to "dark"
+  const [currentTheme, setCurrentTheme] = useState(initialTheme || "dark");
 
   const toggleTheme = (themeName) => {
     setCurrentTheme(themeName);
     localStore?.setTheme(themeName);
   };
+
   useEffect(() => {
     if (!initialTheme) {
       (async () => {
-        const storedTheme = await localStore.getCurrentTheme("theme");
+        const storedTheme = await localStore?.getCurrentTheme("theme");
         if (storedTheme && themes[storedTheme]) {
           setCurrentTheme(storedTheme);
+        } else {
+          // If no stored theme, ensure we default to dark
+          setCurrentTheme("dark");
         }
       })();
     }
   }, []);
+
   return (
     <ThemeContext.Provider
       value={{

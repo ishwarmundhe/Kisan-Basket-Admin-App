@@ -164,7 +164,7 @@ const MapPreview = ({ order, status }) => (
       end={{ x: 1, y: 1 }}
       className="aspect-video relative flex items-center justify-center"
     >
-      <MapPin className="text-white" size={48} />
+      <MapPin className="text-white" size={48} color={"#fff"} />
 
       <View className="absolute top-3 right-3 bg-white rounded-lg px-3 py-1.5 shadow-lg">
         <Text className="text-[#1A1A1A]">{order?.distance}</Text>
@@ -172,7 +172,10 @@ const MapPreview = ({ order, status }) => (
 
       {status === DELIVERY_STATUSES.OUT_FOR_DELIVERY && (
         <View className="absolute bottom-3 left-3 right-3">
-          <View className="bg-white rounded-xl p-3 shadow-lg">
+          <View
+            className="bg-white rounded-xl p-3 shadow-lg"
+            style={{ borderRadius: 10 }}
+          >
             <View className="flex flex-row items-center justify-between mb-2">
               <Text className="text-[#6F6F6F] text-sm">Estimated arrival</Text>
               <Text className="text-[#1FAF68]">15 mins</Text>
