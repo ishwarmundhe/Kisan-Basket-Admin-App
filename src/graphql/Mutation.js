@@ -416,6 +416,30 @@ export const ORDER_CONFIRM = gql`
 `;
 
 
+export const ORDER_LINE_UPDATE = gql`
+  mutation OrderLineUpdate($id: ID!, $input: OrderLineInput!) {
+    orderLineUpdate(id: $id, input: $input) {
+      errors {
+        code
+        field
+        message
+      }
+      order {
+        id
+        lines {
+          id
+          quantity
+          totalPrice {
+            gross {
+              amount
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 
 export const ORDER_MARK_AS_PAID = gql`
   mutation OrderMarkAsPaid($id: ID!) {

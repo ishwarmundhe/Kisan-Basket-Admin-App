@@ -16,7 +16,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
-  Alert,
   Animated,
 } from "react-native";
 import { Card, Text, FAB } from "react-native-paper";
@@ -28,6 +27,9 @@ import ScreenLayout from "../ScreenLayout";
 import ShimmerPlaceholder from "../../../components/custom/shimmerLoaderPlaceholder";
 import ErrorMessage from "../../../components/custom/errorMessage";
 import { colors } from "../../../constant/Colors";
+
+// REMOVED the conflicting react-native-paper Modal import
+
 import {
   ORDER_LIST_QUERY,
   MONTH_TOTAL_ORDERS,
@@ -46,9 +48,7 @@ import { toast } from "sonner-native";
 import { useTheme } from "../../../constant/ThemeContext";
 import DashboardStats from "../productsTab/DashboardStats";
 import moment from "moment";
-import { Select } from "../../../components/ui/Select";
 
-// Status color mapping
 const STATUS_COLORS = {
   CANCELED: colors.CANCELED,
   UNCONFIRMED: colors.UNCONFIRMED,
@@ -63,7 +63,7 @@ const useStyle = (theme) =>
         // --- LAYOUT & SPACING ---
         searchCreateContainer: {
           flexDirection: "row",
-          gap: 12, // Increased gap for better breathing room
+          gap: 12,
           marginBottom: 16,
         },
         messageContainer: {
@@ -73,50 +73,50 @@ const useStyle = (theme) =>
         },
         errorText: {
           fontSize: 16,
-          color: theme.secondary, // Use muted text for errors/empty states
+          color: theme.secondary,
         },
         flatListContent: {
           gap: 12,
           paddingTop: 10,
-          paddingBottom: 80, // Space for FAB
+          paddingBottom: 80,
         },
 
-        // --- CARDS (The core "Black Item" look) ---
+        // --- CARDS ---
         card: {
-          borderRadius: 8, // Slightly sharper corners (Shadcn style)
+          borderRadius: 8,
           padding: 16,
-          marginHorizontal: 16, // Remove side margins if inside a padded container
-          backgroundColor: theme.primary, // Zinc 900
-          borderColor: theme.border, // Zinc 800
+          marginHorizontal: 16,
+          backgroundColor: theme.primary,
+          borderColor: theme.border,
           borderWidth: 1,
         },
         cardInner: {
           flexDirection: "row",
           justifyContent: "space-between",
-          alignItems: "flex-start", // Align top to handle variable text heights
+          alignItems: "flex-start",
         },
         cardTitle: {
-          color: theme.heading, // White
+          color: theme.heading,
           fontSize: 16,
-          fontWeight: "600", // Semi-bold looks cleaner than bold in dark mode
+          fontWeight: "600",
           marginBottom: 6,
           lineHeight: 22,
         },
         cardText: {
-          color: theme.secondary, // Zinc 400 (Muted)
+          color: theme.secondary,
           fontSize: 14,
           marginBottom: 4,
         },
         addressTitle: {
-          color: theme.text, // Zinc 50 (Brighter than secondary)
+          color: theme.text,
           fontWeight: "500",
         },
         deliveryText: {
           marginTop: 8,
-          color: theme.deliveryDate, // Green 400
+          color: theme.deliveryDate,
           fontWeight: "600",
           fontSize: 13,
-          backgroundColor: `${theme.deliveryDate}15`, // Very subtle background tint
+          backgroundColor: `${theme.deliveryDate}15`,
           alignSelf: "flex-start",
           paddingHorizontal: 8,
           paddingVertical: 2,
@@ -134,15 +134,23 @@ const useStyle = (theme) =>
           borderRadius: 8,
           paddingHorizontal: 12,
           height: 48,
-          backgroundColor: theme.primary, // Zinc 900
+          backgroundColor: theme.primary,
         },
         searchInput: {
           flex: 1,
           marginLeft: 8,
-          color: theme.text, // White text
+          color: theme.text,
           fontSize: 15,
         },
+
+        dateRowContainer: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 16,
+        },
         dateInput: {
+          flex: 1,
           height: 48,
           paddingHorizontal: 12,
           flexDirection: "row",
@@ -151,9 +159,17 @@ const useStyle = (theme) =>
           borderWidth: 1,
           borderColor: theme.border,
           borderRadius: 8,
-          marginTop: 0, // Removed top margin to fit better in layout
-          marginBottom: 16,
           backgroundColor: theme.primary,
+        },
+        refreshButton: {
+          width: 48,
+          height: 48,
+          borderWidth: 1,
+          borderColor: theme.border,
+          borderRadius: 8,
+          backgroundColor: theme.primary,
+          justifyContent: "center",
+          alignItems: "center",
         },
         datePickerStyle: {
           color: theme.text,
@@ -164,28 +180,28 @@ const useStyle = (theme) =>
         // --- BUTTONS ---
         createButton: {
           borderWidth: 1,
-          borderColor: theme.textSecondary, // White border
+          borderColor: theme.textSecondary,
           paddingHorizontal: 20,
           borderRadius: 8,
           height: 48,
-          backgroundColor: theme.textSecondary, // White Background (Inverted)
+          backgroundColor: theme.textSecondary,
           justifyContent: "center",
           alignItems: "center",
         },
         createButtonText: {
-          color: theme.background, // **FIX: Black text on White button**
+          color: theme.background,
           fontWeight: "600",
           fontSize: 14,
         },
 
-        // --- ACTION BUTTONS (Subtle Dark Mode Style) ---
+        // --- ACTION BUTTONS ---
         actionContainer: {
           flexDirection: "row",
-          justifyContent: "flex-end", // Align actions to right
+          justifyContent: "flex-end",
           marginTop: 16,
           paddingTop: 16,
           borderTopWidth: 1,
-          borderTopColor: theme.border, // Separator line
+          borderTopColor: theme.border,
           gap: 10,
         },
         actionBtn: {
@@ -196,10 +212,14 @@ const useStyle = (theme) =>
           justifyContent: "center",
           minWidth: 80,
         },
-        // Using slightly desaturated colors for dark mode to reduce eye strain
-        confirmBtn: { backgroundColor: "#059669", borderWidth: 0 }, // Emerald 600
-        fulfillBtn: { backgroundColor: "#2563eb", borderWidth: 0 }, // Blue 600
-        paidBtn: { backgroundColor: "#d97706", borderWidth: 0 }, // Amber 600
+        confirmBtn: { backgroundColor: "#059669", borderWidth: 0 },
+        fulfillBtn: { backgroundColor: "#2563eb", borderWidth: 0 },
+        paidBtn: { backgroundColor: "#d97706", borderWidth: 0 },
+        orderPaid: {
+          borderWidth: 1,
+          borderColor: "#88E788",
+          backgroundColor: "#ecfcec",
+        },
         btnText: {
           color: "#FFFFFF",
           fontWeight: "600",
@@ -208,9 +228,9 @@ const useStyle = (theme) =>
 
         // --- ICONS & EXTRAS ---
         shareButton: {
-          backgroundColor: theme.shareButtonColor, // Zinc 800
+          backgroundColor: theme.shareButtonColor,
           padding: 8,
-          borderRadius: 8, // Square-ish with radius looks more modern than circle
+          borderRadius: 8,
           borderWidth: 1,
           borderColor: theme.border,
         },
@@ -221,7 +241,6 @@ const useStyle = (theme) =>
           backgroundColor: "#18181b",
           borderWidth: 1,
           borderColor: "#27272a",
-
           width: 60,
           height: 60,
           borderRadius: 30,
@@ -233,18 +252,17 @@ const useStyle = (theme) =>
           shadowOpacity: 0.3,
           shadowRadius: 4,
         },
-        fabIconColor: "#fafafa",
 
-        // --- MODAL ---
+        // --- MODALS & OVERLAYS ---
         modalOverlay: {
           flex: 1,
-          backgroundColor: "rgba(0,0,0,0.8)", // Darker overlay for focus
+          backgroundColor: "rgba(0,0,0,0.8)",
           justifyContent: "center",
           alignItems: "center",
         },
         modalContent: {
           width: "90%",
-          backgroundColor: theme.primary, // Zinc 900
+          backgroundColor: theme.primary,
           borderRadius: 12,
           padding: 24,
           borderWidth: 1,
@@ -274,6 +292,14 @@ const useStyle = (theme) =>
           alignItems: "center",
         },
 
+        // NEW: Full Screen Loader Styles
+        fullScreenLoaderText: {
+          color: "#FFFFFF",
+          marginTop: 12,
+          fontSize: 16,
+          fontWeight: "600",
+        },
+
         // --- SKELETON ---
         shimmerCard: {
           backgroundColor: theme.primary,
@@ -283,11 +309,29 @@ const useStyle = (theme) =>
           padding: 16,
           marginBottom: 12,
         },
+
+        rightActions: {
+          alignItems: "flex-end",
+        },
+        unpaidBadge: {
+          backgroundColor: "rgba(239, 68, 68, 0.15)",
+          paddingHorizontal: 4,
+          paddingVertical: 4,
+          borderRadius: 4,
+          borderWidth: 1,
+          borderColor: "rgba(239, 68, 68, 0.4)",
+          marginBottom: 8,
+        },
+        unpaidBadgeText: {
+          color: theme.error || "#ef4444",
+          fontSize: 10,
+          fontWeight: "700",
+          textTransform: "uppercase",
+        },
       }),
     [theme],
   );
 
-// --- COMPONENT: Warehouse Selection Modal ---
 const WarehouseModal = ({
   visible,
   onClose,
@@ -336,8 +380,6 @@ const WarehouseModal = ({
   );
 };
 
-// ... imports remain the same
-
 const OrderItem = React.memo(
   ({
     item,
@@ -348,59 +390,70 @@ const OrderItem = React.memo(
     onConfirm,
     onFulfill,
     onMarkPaid,
-    loadingActionId,
   }) => {
     const order = item?.node;
     const { theme } = useTheme();
     const styles = useStyle(theme);
 
-    // --- COLOR LOGIC (Now checking Category Name first) ---
     const lines = order?.lines || [];
-    
-    // Helper to check both category name and fallback to product name
+
     const matchesCategory = (line, keyword) => {
-      const categoryName = line?.variant?.product?.category?.name?.toLowerCase() || "";
+      const categoryName =
+        line?.variant?.product?.category?.name?.toLowerCase() || "";
       const productName = line?.productName?.toLowerCase() || "";
       return categoryName.includes(keyword) || productName.includes(keyword);
     };
 
     const hasOil = lines.some((l) => matchesCategory(l, "oil"));
     const hasAtta = lines.some((l) => matchesCategory(l, "atta"));
-    const hasSpices = lines.some((l) => matchesCategory(l, "spice") || matchesCategory(l, "masala") || matchesCategory(l, "powder"));
-    const hasPulses = lines.some((l) => matchesCategory(l, "pulse") || matchesCategory(l, "dal"));
-    // You can also add a specific check for Vegetables if you want a custom color for them later
-    // const hasVeg = lines.some((l) => matchesCategory(l, "vegetable"));
+    const hasSpices = lines.some(
+      (l) =>
+        matchesCategory(l, "spice") ||
+        matchesCategory(l, "masala") ||
+        matchesCategory(l, "powder"),
+    );
+    const hasPulses = lines.some(
+      (l) => matchesCategory(l, "pulse") || matchesCategory(l, "dal"),
+    );
+    const hasPaneer = lines.some(
+      (l) =>
+        matchesCategory(l, "dairy") ||
+        matchesCategory(l, "paneer") ||
+        matchesCategory(l, "malai"),
+    );
 
-    // Default Style
     let dynamicCardStyle = {
       backgroundColor: "#18181b",
       borderColor: theme.border,
     };
 
-    // Priority color matching
     if (hasOil) {
       dynamicCardStyle = {
-        backgroundColor: "rgba(234, 179, 8, 0.15)", // Amber/Yellow
+        backgroundColor: "rgba(234, 179, 8, 0.15)",
         borderColor: "#eab308",
       };
     } else if (hasAtta) {
       dynamicCardStyle = {
-        backgroundColor: "rgba(249, 115, 22, 0.15)", // Orange
+        backgroundColor: "rgba(249, 115, 22, 0.15)",
         borderColor: "#f97316",
       };
     } else if (hasSpices) {
       dynamicCardStyle = {
-        backgroundColor: "rgba(239, 68, 68, 0.15)", // Red for Spices
+        backgroundColor: "rgba(239, 68, 68, 0.15)",
         borderColor: "#ef4444",
       };
     } else if (hasPulses) {
       dynamicCardStyle = {
-        backgroundColor: "rgba(16, 185, 129, 0.15)", // Emerald for Pulses
+        backgroundColor: "rgba(16, 185, 129, 0.15)",
         borderColor: "#10b981",
+      };
+    } else if (hasPaneer) {
+      dynamicCardStyle = {
+        backgroundColor: "rgba(6, 182, 212, 0.15)",
+        borderColor: "#06b6d4",
       };
     }
 
-    // CANCELED OPACITY
     const isCanceled = order?.status === "CANCELED";
     const finalCardStyle = [
       styles.card,
@@ -420,6 +473,18 @@ const OrderItem = React.memo(
     return (
       <TouchableOpacity onPress={() => onPress(order?.id)}>
         <Card style={finalCardStyle}>
+          <View style={styles.rightActions}>
+            {!order?.isPaid &&
+              !isCanceled &&
+              !["UNCONFIRMED", "UNFULFILLED", "PARTIALLY_FULFILLED"].includes(
+                order?.status,
+              ) && (
+                <View style={styles.unpaidBadge}>
+                  <Text style={styles.unpaidBadgeText}>Payment Pending</Text>
+                </View>
+              )}
+          </View>
+
           <View style={styles.cardInner}>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{addressLine1}</Text>
@@ -469,19 +534,13 @@ const OrderItem = React.memo(
             </TouchableOpacity>
           </View>
 
-          {/* --- ACTION BUTTONS --- */}
           <View style={styles.actionContainer}>
             {order?.status === "UNCONFIRMED" && (
               <TouchableOpacity
                 style={[styles.actionBtn, styles.confirmBtn]}
                 onPress={() => onConfirm(order.id)}
-                disabled={loadingActionId === order.id}
               >
-                {loadingActionId === order.id ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <Text style={styles.btnText}>Confirm</Text>
-                )}
+                <Text style={styles.btnText}>Confirm</Text>
               </TouchableOpacity>
             )}
 
@@ -490,17 +549,21 @@ const OrderItem = React.memo(
               <TouchableOpacity
                 style={[styles.actionBtn, styles.fulfillBtn]}
                 onPress={() => onFulfill(order.id)}
-                disabled={loadingActionId === order.id}
               >
                 <Text style={styles.btnText}>Fulfill</Text>
               </TouchableOpacity>
+            )}
+
+            {order?.status === "FULFILLED" && order?.isPaid && (
+              <View style={[styles.actionBtn, styles.orderPaid]}>
+                <Text>Order Paid</Text>
+              </View>
             )}
 
             {order?.status === "FULFILLED" && !order?.isPaid && (
               <TouchableOpacity
                 style={[styles.actionBtn, styles.paidBtn]}
                 onPress={() => onMarkPaid(order.id)}
-                disabled={loadingActionId === order.id}
               >
                 <Text style={styles.btnText}>Mark Paid</Text>
               </TouchableOpacity>
@@ -542,19 +605,20 @@ export default function ProductSelectionScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All");
 
-  // New State for Actions
   const [loadingActionId, setLoadingActionId] = useState(null);
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
   const [fulfillTargetOrderId, setFulfillTargetOrderId] = useState(null);
 
+  const [confirmOrderModalVisible, setConfirmOrderModalVisible] =
+    useState(false);
+  const [confirmTargetOrderId, setConfirmTargetOrderId] = useState(null); // <-- Added dedicated state
+
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // ── Measure real heights dynamically ──
   const [statsHeight, setStatsHeight] = useState(0);
   const [searchHeight, setSearchHeight] = useState(0);
   const totalHeaderHeight = statsHeight + searchHeight;
 
-  // Stats slides up and fades
   const statsTranslateY = scrollY.interpolate({
     inputRange: [0, statsHeight || 1],
     outputRange: [0, -statsHeight],
@@ -566,19 +630,18 @@ export default function ProductSelectionScreen({ navigation }) {
     extrapolate: "clamp",
   });
 
-  // Search bar moves up by the same amount as stats height
   const searchTranslateY = scrollY.interpolate({
     inputRange: [0, statsHeight || 1],
     outputRange: [0, -statsHeight],
     extrapolate: "clamp",
   });
 
-const getSelectedMonthDateRange = useMemo(
+  const getSelectedMonthDateRange = useMemo(
     () => ({
       gte: moment(selectedDate).startOf("month").format("YYYY-MM-DD"),
       lte: moment(selectedDate).endOf("month").format("YYYY-MM-DD"),
     }),
-    [selectedDate] // Dependency array ensures it updates when you pick a new date
+    [selectedDate],
   );
 
   const todayDate = useMemo(
@@ -586,21 +649,16 @@ const getSelectedMonthDateRange = useMemo(
     [selectedDate],
   );
 
-  // --- QUERIES & MUTATIONS ---
-
   const [
     fetchOrders,
     { data: orderList, loading, error: orderListError, refetch },
   ] = useLazyQuery(ORDER_LIST_QUERY);
-
-const { data: monthlyOrdersData } = useQuery(MONTH_TOTAL_ORDERS, {
-    variables: getSelectedMonthDateRange,
-  });
-
+  const { data: monthlyOrdersData, refetch: refetchMonthlyData } = useQuery(
+    MONTH_TOTAL_ORDERS,
+    { variables: getSelectedMonthDateRange },
+  );
   const { data: warehouseData, loading: warehouseLoading } =
     useQuery(WAREHOUSE_LIST);
-
-  // Used to get lines before fulfilling
   const [fetchFulfillData] = useLazyQuery(ORDER_FULFILL_DATA, {
     fetchPolicy: "network-only",
   });
@@ -612,94 +670,125 @@ const { data: monthlyOrdersData } = useQuery(MONTH_TOTAL_ORDERS, {
   const [markAsPaid] = useMutation(ORDER_MARK_AS_PAID);
 
   const orders = useMemo(() => orderList?.orders?.edges ?? [], [orderList]);
-  console.log("==>", orders);
   const hasOrders = orders.length > 0;
   const currentMonthOrderCount = monthlyOrdersData?.orders?.totalCount ?? 0;
 
-const stats = useMemo(() => {
+  const stats = useMemo(() => {
     let atta = 0;
     let oil = 0;
     let veg = 0;
     let spices = 0;
     let pulses = 0;
-
+    let paneer = 0;
     orders.forEach((edge) => {
-      // Skip the entire order if it is canceled
-      if (edge.node.status === "CANCELED") {
-        return; 
-      }
-
+      if (edge.node.status === "CANCELED") return;
       const lines = edge.node.lines || [];
-      
       const checkCategory = (line, keyword) => {
         const cat = line?.variant?.product?.category?.name?.toLowerCase() || "";
         const name = line?.productName?.toLowerCase() || "";
         return cat.includes(keyword) || name.includes(keyword);
       };
-
-      const hasAtta = lines.some((l) => checkCategory(l, "atta"));
-      const hasOil = lines.some((l) => checkCategory(l, "oil"));
-      const hasSpices = lines.some((l) => checkCategory(l, "spice") || checkCategory(l, "masala") || checkCategory(l, "powder"));
-      const hasPulses = lines.some((l) => checkCategory(l, "pulse") || checkCategory(l, "dal"));
-      
-      // Specifically look for 'vegetable' category first, then fallback to anything that doesn't match the others
-      const hasVeg = lines.some((l) => {
-        const cat = l?.variant?.product?.category?.name?.toLowerCase() || "";
-        if (cat.includes("vegetable")) return true;
-        
-        // Fallback for uncategorized items
-        return !checkCategory(l, "atta") && 
-               !checkCategory(l, "oil") && 
-               !checkCategory(l, "spice") && 
-               !checkCategory(l, "masala") && 
-               !checkCategory(l, "powder") && 
-               !checkCategory(l, "pulse") && 
-               !checkCategory(l, "dal");
-      });
-
-      if (hasAtta) atta++;
-      if (hasOil) oil++;
-      if (hasSpices) spices++;
-      if (hasPulses) pulses++;
-      if (hasVeg) veg++;
+      if (lines.some((l) => checkCategory(l, "atta"))) atta++;
+      if (lines.some((l) => checkCategory(l, "oil"))) oil++;
+      if (
+        lines.some(
+          (l) =>
+            checkCategory(l, "spice") ||
+            checkCategory(l, "masala") ||
+            checkCategory(l, "powder"),
+        )
+      )
+        spices++;
+      if (
+        lines.some((l) => checkCategory(l, "pulse") || checkCategory(l, "dal"))
+      )
+        pulses++;
+      if (
+        lines.some(
+          (l) =>
+            checkCategory(l, "dairy") ||
+            checkCategory(l, "paneer") ||
+            checkCategory(l, "malai"),
+        )
+      )
+        paneer++;
+      if (
+        lines.some((l) => {
+          const cat = l?.variant?.product?.category?.name?.toLowerCase() || "";
+          if (cat.includes("vegetable")) return true;
+          return (
+            !checkCategory(l, "atta") &&
+            !checkCategory(l, "oil") &&
+            !checkCategory(l, "spice") &&
+            !checkCategory(l, "masala") &&
+            !checkCategory(l, "powder") &&
+            !checkCategory(l, "pulse") &&
+            !checkCategory(l, "dal") &&
+            !checkCategory(l, "dairy") &&
+            !checkCategory(l, "paneer") &&
+            !checkCategory(l, "malai")
+          );
+        })
+      )
+        veg++;
     });
-
-    return { atta, oil, veg, spices, pulses };
+    return { atta, oil, veg, spices, pulses, paneer };
   }, [orders]);
 
-  // --- HANDLERS ---
-
-  // --- NEW: Filter the orders based on selected dashboard card ---
   const displayedOrders = useMemo(() => {
     if (activeFilter === "All") return orders;
-
     return orders.filter((edge) => {
       const lines = edge.node.lines || [];
-
-      // Reusable checking function
       const checkCategory = (line, keyword) => {
         const cat = line?.variant?.product?.category?.name?.toLowerCase() || "";
         const name = line?.productName?.toLowerCase() || "";
         return cat.includes(keyword) || name.includes(keyword);
       };
-
-      if (activeFilter === "Atta") return lines.some(l => checkCategory(l, "atta"));
-      if (activeFilter === "Oil") return lines.some(l => checkCategory(l, "oil"));
-      if (activeFilter === "Spices") return lines.some(l => checkCategory(l, "spice") || checkCategory(l, "masala") || checkCategory(l, "powder"));
-      if (activeFilter === "Pulses") return lines.some(l => checkCategory(l, "pulse") || checkCategory(l, "dal"));
-      if (activeFilter === "Vegetable") return lines.some(l => {
-        const cat = l?.variant?.product?.category?.name?.toLowerCase() || "";
-        if (cat.includes("vegetable")) return true;
-        // Fallback for Veg/Other
-        return !checkCategory(l, "atta") && !checkCategory(l, "oil") && !checkCategory(l, "spice") && !checkCategory(l, "masala") && !checkCategory(l, "powder") && !checkCategory(l, "pulse") && !checkCategory(l, "dal");
-      });
-
+      if (activeFilter === "Atta")
+        return lines.some((l) => checkCategory(l, "atta"));
+      if (activeFilter === "Oil")
+        return lines.some((l) => checkCategory(l, "oil"));
+      if (activeFilter === "Spices")
+        return lines.some(
+          (l) =>
+            checkCategory(l, "spice") ||
+            checkCategory(l, "masala") ||
+            checkCategory(l, "powder"),
+        );
+      if (activeFilter === "Pulses")
+        return lines.some(
+          (l) => checkCategory(l, "pulse") || checkCategory(l, "dal"),
+        );
+      if (activeFilter === "Paneer")
+        return lines.some(
+          (l) =>
+            checkCategory(l, "dairy") ||
+            checkCategory(l, "paneer") ||
+            checkCategory(l, "malai"),
+        );
+      if (activeFilter === "Vegetable")
+        return lines.some((l) => {
+          const cat = l?.variant?.product?.category?.name?.toLowerCase() || "";
+          if (cat.includes("vegetable")) return true;
+          return (
+            !checkCategory(l, "atta") &&
+            !checkCategory(l, "oil") &&
+            !checkCategory(l, "spice") &&
+            !checkCategory(l, "masala") &&
+            !checkCategory(l, "powder") &&
+            !checkCategory(l, "pulse") &&
+            !checkCategory(l, "dal") &&
+            !checkCategory(l, "dairy") &&
+            !checkCategory(l, "paneer") &&
+            !checkCategory(l, "malai")
+          );
+        });
       return true;
     });
   }, [orders, activeFilter]);
 
-  // 1. Confirm Order
   const handleConfirmOrder = async (id) => {
+    if (!id) return;
     setLoadingActionId(id);
     try {
       const { data } = await confirmOrder({ variables: { id } });
@@ -707,31 +796,22 @@ const stats = useMemo(() => {
         toast.error(data.orderConfirm.errors[0].message);
       } else {
         toast.success("Order Confirmed!");
-        handleRefresh(); // Refresh list to update status
+        await handleRefresh();
       }
     } catch (e) {
-      console.log("err", e);
-
       toast.error("Failed to confirm order");
     } finally {
       setLoadingActionId(null);
     }
   };
 
-  // 2. Mark as Paid
-  // In ProductSelectionScreen.js
-
   const handleMarkPaid = async (id) => {
     setLoadingActionId(id);
     try {
       const { data } = await markAsPaid({ variables: { id } });
-      console.log("data", data);
       const errors = data?.orderMarkAsPaid?.errors || [];
-
       if (errors.length > 0) {
         const error = errors[0];
-
-        // Handle the specific "Payment Exists" error
         if (error.field === "payment") {
           toast.info("Payment Already Exists", {
             description:
@@ -743,37 +823,31 @@ const stats = useMemo(() => {
         }
       } else {
         toast.success("Marked as Paid!");
-        handleRefresh();
+        await handleRefresh();
       }
     } catch (e) {
-      console.error(e);
       toast.error("Failed to mark as paid");
     } finally {
       setLoadingActionId(null);
     }
   };
 
-  // 3. Fulfill - Step 1: Open Warehouse Modal
   const onFulfillClick = (id) => {
     setFulfillTargetOrderId(id);
     setShowWarehouseModal(true);
   };
 
-  // 3. Fulfill - Step 2: Select Warehouse & Execute
   const handleFulfillConfirm = async (warehouseId) => {
     setShowWarehouseModal(false);
     if (!fulfillTargetOrderId) return;
 
     setLoadingActionId(fulfillTargetOrderId);
     try {
-      // A. Get Order Lines first (needed for input construction)
       const { data: lineData } = await fetchFulfillData({
         variables: { orderId: fulfillTargetOrderId },
       });
-
       const lines = lineData?.order?.lines || [];
 
-      // Filter lines that actually need fulfillment
       const linesInput = lines
         .filter((l) => l.quantityToFulfill > 0)
         .map((l) => ({
@@ -786,22 +860,19 @@ const stats = useMemo(() => {
         return;
       }
 
-      // B. Run Mutation
       const { data } = await fulfillOrder({
         variables: {
           orderId: fulfillTargetOrderId,
           input: { lines: linesInput },
         },
       });
-
       if (data?.orderFulfill?.errors?.length > 0) {
         toast.error(data.orderFulfill.errors[0].message);
       } else {
         toast.success("Order Fulfilled!");
-        handleRefresh();
+        await handleRefresh();
       }
     } catch (e) {
-      console.error(e);
       toast.error("Fulfillment failed");
     } finally {
       setLoadingActionId(null);
@@ -878,20 +949,47 @@ const stats = useMemo(() => {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refetch({
-        first: 100,
-        filter: {
-          created: { gte: todayDate, lte: todayDate },
-          ...(searchQuery.trim() && { search: searchQuery }),
-        },
-        sort: { direction: "DESC", field: "NUMBER" },
-      });
+      if (refetch) {
+        await refetch({
+          first: 100,
+          filter: {
+            created: { gte: todayDate, lte: todayDate },
+            ...(searchQuery.trim() && { search: searchQuery }),
+          },
+          sort: { direction: "DESC", field: "NUMBER" },
+        });
+      } else {
+        await fetchOrders({
+          variables: {
+            first: 100,
+            filter: {
+              created: { gte: todayDate, lte: todayDate },
+              ...(searchQuery.trim() && { search: searchQuery }),
+            },
+            sort: { direction: "DESC", field: "NUMBER" },
+          },
+          fetchPolicy: "network-only",
+        });
+      }
+      if (refetchMonthlyData) await refetchMonthlyData();
     } catch (e) {
-      toast.error("Refresh error", e);
+      toast.error("Refresh error: " + e.message);
     } finally {
       setRefreshing(false);
     }
-  }, [refetch, todayDate, searchQuery]);
+  }, [fetchOrders, refetch, refetchMonthlyData, todayDate, searchQuery]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (globalRefresh) {
+        const timer = setTimeout(() => {
+          handleRefresh();
+          setGlobalRefresh(false);
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }, [globalRefresh, handleRefresh, setGlobalRefresh]),
+  );
 
   const renderOrderItem = useCallback(
     ({ item }) => (
@@ -901,10 +999,12 @@ const stats = useMemo(() => {
         onShare={handleGenerateInvoice}
         invoiceLoadder={invoiceLoadder}
         selectedOrderId={selectedOrderId}
-        onConfirm={handleConfirmOrder}
+        onConfirm={(id) => {
+          setConfirmTargetOrderId(id);
+          setConfirmOrderModalVisible(true);
+        }}
         onFulfill={onFulfillClick}
         onMarkPaid={handleMarkPaid}
-        loadingActionId={loadingActionId}
       />
     ),
     [
@@ -912,18 +1012,7 @@ const stats = useMemo(() => {
       handleGenerateInvoice,
       invoiceLoadder,
       selectedOrderId,
-      loadingActionId,
     ],
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (globalRefresh) {
-        debouncedSearch("");
-        setTimeout(() => setGlobalRefresh(false), 300);
-      }
-      return () => debouncedSearch.cancel();
-    }, [debouncedSearch, globalRefresh, setGlobalRefresh]),
   );
 
   useEffect(() => {
@@ -938,6 +1027,17 @@ const stats = useMemo(() => {
 
   return (
     <ScreenLayout>
+      <Modal
+        visible={!!loadingActionId}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={styles.fullScreenLoaderText}>Processing...</Text>
+        </View>
+      </Modal>
+
       {showPicker && (
         <DateTimePicker
           value={selectedDate}
@@ -948,7 +1048,6 @@ const stats = useMemo(() => {
       )}
 
       <View style={{ flex: 1 }}>
-        {/* ── LAYER 1: DashboardStats ── */}
         <Animated.View
           onLayout={(e) => setStatsHeight(e.nativeEvent.layout.height)}
           style={{
@@ -964,26 +1063,29 @@ const stats = useMemo(() => {
             paddingTop: 8,
           }}
         >
-        <DashboardStats
+          <DashboardStats
             vegCount={stats.veg}
             oilCount={stats.oil}
             attaCount={stats.atta}
-            spicesCount={stats.spices} // Add this line
-            pulsesCount={stats.pulses} // Add this line
-            todaysOrderCount={orders.filter((order) => order?.node?.status !== "CANCELED").length}
+            paneerCount={stats.paneer}
+            spicesCount={stats.spices}
+            pulsesCount={stats.pulses}
+            todaysOrderCount={
+              orders.filter((order) => order?.node?.status !== "CANCELED")
+                .length
+            }
             totalOrdersCount={currentMonthOrderCount}
             onPress={() => navigation.navigate("Performance")}
-            activeFilter={activeFilter} // <-- ADD THIS
+            activeFilter={activeFilter}
             onFilterSelect={setActiveFilter}
           />
         </Animated.View>
 
-        {/* ── LAYER 2: Search + Date (sits below stats, sticks after stats hide) ── */}
         <Animated.View
           onLayout={(e) => setSearchHeight(e.nativeEvent.layout.height)}
           style={{
             position: "absolute",
-            top: statsHeight, // ← starts right below measured stats
+            top: statsHeight,
             left: 0,
             right: 0,
             zIndex: 2,
@@ -999,7 +1101,7 @@ const stats = useMemo(() => {
               <TextInput
                 style={styles.searchInput}
                 placeholderTextColor="#A9A9A9"
-                placeholder="Search by name order"
+                placeholder="Search order"
                 value={searchQuery}
                 onChangeText={handleSearchChange}
               />
@@ -1015,23 +1117,40 @@ const stats = useMemo(() => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.dateInput}
-            onPress={() => setShowPicker(true)}
-          >
-            <Ionicons name="calendar-outline" size={20} color={colors.WHITE} />
-            <Text style={styles.datePickerStyle}>{todayDate}</Text>
-          </TouchableOpacity>
+          <View style={styles.dateRowContainer}>
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={() => setShowPicker(true)}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={colors.WHITE}
+              />
+              <Text style={styles.datePickerStyle}>{todayDate}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.refreshButton}
+              onPress={handleRefresh}
+              disabled={refreshing}
+            >
+              {refreshing ? (
+                <ActivityIndicator size="small" color={theme.text} />
+              ) : (
+                <Ionicons name="refresh-outline" size={22} color={theme.text} />
+              )}
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
-        {/* ── LAYER 3: FlatList — paddingTop = exact combined header height ── */}
-        {totalHeaderHeight > 0 && ( // ← only render once heights are known
+        {totalHeaderHeight > 0 && (
           <Animated.FlatList
             data={displayedOrders}
             keyExtractor={(item) => item?.node?.id}
             contentContainerStyle={[
               styles.flatListContent,
-              { paddingTop: totalHeaderHeight }, // ← exact measured value
+              { paddingTop: totalHeaderHeight },
             ]}
             showsVerticalScrollIndicator={false}
             renderItem={renderOrderItem}
@@ -1074,6 +1193,72 @@ const stats = useMemo(() => {
         warehouses={warehouseData?.warehouses?.edges || []}
         loading={warehouseLoading}
       />
+
+      <Modal
+        visible={confirmOrderModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setConfirmOrderModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirm Order</Text>
+
+            <Text
+              style={{
+                fontSize: 16,
+                marginBottom: 24,
+                color: theme.text,
+                textAlign: "center",
+              }}
+            >
+              Once confirmed, you will not be able to modify product quantities
+              or remove items from this order.{" "}
+            </Text>
+
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                paddingHorizontal: 20,
+              }}
+            >
+              <TouchableOpacity
+                style={{ padding: 10 }}
+                onPress={() => setConfirmOrderModalVisible(false)}
+              >
+                <Text
+                  style={{
+                    color: theme.secondary,
+                    fontWeight: "600",
+                    fontSize: 16,
+                  }}
+                >
+                  No, Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ padding: 10 }}
+                onPress={() => {
+                  setConfirmOrderModalVisible(false);
+                  handleConfirmOrder(confirmTargetOrderId);
+                }}
+              >
+                <Text
+                  style={{
+                    color: theme.deliveryDate || "#4ade80",
+                    fontWeight: "600",
+                    fontSize: 16,
+                  }}
+                >
+                  Yes, Confirm
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
 }

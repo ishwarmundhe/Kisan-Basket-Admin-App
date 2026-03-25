@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  BackHandler,
+  ActivityIndicator,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { useMutation, useQuery, useLazyQuery } from "@apollo/client/react";
@@ -40,6 +40,7 @@ import {
   ORDER_LINE_DELETE,
   ORDER_DRAFT_FINALIZE,
   ORDER_DRAFT_CANCEL,
+  ORDER_LINE_UPDATE,
 } from "../../../graphql/Mutation";
 
 // Services & Context
@@ -73,7 +74,10 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [productList, setProductList] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
-  const [backConfirmVisible, setBackConfirmVisible] = useState(false);
+
+  const [confirmOrderModalVisible, setConfirmOrderModalVisible] =
+    useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
   // Date management
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -84,7 +88,9 @@ export default function OrderSummaryScreen({ navigation, route }) {
   });
 
   // GraphQL operations
-const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_FINALIZE);
+  const [updateOrderProduct] = useMutation(ORDER_LINE_UPDATE);
+  const [orderDraftFinalize, { loading: isFinalizing }] =
+    useMutation(ORDER_DRAFT_FINALIZE);
   const [fetchOrderDetails, { isLoading: fetchMetaDataLoading }] = useLazyQuery(
     ORDER_DETAILS_WITH_METADATA,
   );
@@ -120,8 +126,34 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
       })) || [],
     [orderWithMetaData],
   );
+  console.log("Order lines with metadata:", orderWithMetaData);
+  console.log("Transformed order lines for table:", orderLines);
 
-  // Handlers
+  const updateQuantity = async (lineId, newQuantity) => {
+    if (!lineId || newQuantity < 1) return;
+
+    try {
+      setLocalLoading(true);
+      const response = await updateOrderProduct({
+        variables: {
+          id: lineId,
+          input: { quantity: newQuantity },
+        },
+      });
+
+      const errors = response?.data?.orderLineUpdate?.errors || [];
+      if (errors.length > 0) {
+        toast.warning(errors[0].message || "Quantity not updated");
+      } else {
+        await fetchOrderData(true);
+      }
+    } catch (err) {
+      toast.error("Failed to update quantity");
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
   const handleSearch = useCallback(
     (query) => {
       setSearchQuery(query);
@@ -246,13 +278,14 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
       const { data } = await cancelOrderQuery({ variables: { id: order_id } });
       if (data.orderCancel.errors.length === 0) {
         setOrderStatus(data?.orderCancel?.order?.status || "");
+        setGlobalRefresh(true);
         navigation.goBack();
       } else {
         toast.error("Order cancel failed");
       }
     } catch (err) {
       console.log("err", err);
-      toast.error("Failed to confirm order");
+      toast.error("Failed to cancel order");
     } finally {
       setLocalLoading(false);
     }
@@ -270,11 +303,21 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
         throw new Error(errors[0]?.message || "Failed to cancel draft order");
       }
       toast.success("Draft order cancelled successfully");
+      setGlobalRefresh(true);
       setTimeout(() => navigation.goBack(), 1000);
     } catch (err) {
       toast.error(err.message || "Failed to cancel draft order");
     }
   }, []);
+
+  const handleConfirmCancel = () => {
+    setCancelModalVisible(false);
+    if (cancellationOrder) {
+      cancelOrder();
+    } else {
+      cancelDraft(order_id);
+    }
+  };
 
   const toggleBottomSheet = useCallback(
     () => setIsVisible((prev) => !prev),
@@ -356,9 +399,13 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{orderStatus}</Text>
           </View>
-          <TouchableOpacity style={styles.actionButton} onPress={cancelOrder}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            // Changed to trigger modal
+            onPress={() => setCancelModalVisible(true)}
+          >
             <Text style={styles.buttonText}>
-              {cancelLoading || localLoading ? "Cancelling" : "Cancel"}
+              {cancelLoading || localLoading ? "Cancelling..." : "Cancel"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -368,7 +415,7 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
       <View style={styles.actionButtonContainer}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => cancelDraft(order_id)}
+          onPress={() => setCancelModalVisible(true)}
           disabled={isCancelling}
         >
           <Text style={styles.buttonText}>
@@ -449,38 +496,14 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
     [selectedSlot, selectedDate, theme],
   );
 
-  // Back Handler logic
-  useEffect(() => {
-    const backAction = () => {
-      setBackConfirmVisible(true);
-      return true;
-    };
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction,
-    );
-    return () => subscription.remove();
-  }, []);
-
-  const confirmBack = async (id) => {
-    try {
-      await cancelDraft(id);
-    } catch (err) {
-      toast.error("Failed to cancel draft before leaving.");
-    } finally {
-      setBackConfirmVisible(false);
-    }
-  };
-
   return (
     <PaperProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
         {localLoading || fetchMetaDataLoading ? (
           <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-            {[...Array(6)].map((_, index) => (
+            {[...Array(2)].map((_, index) => (
               <View key={index} style={styles.shimmerCard}>
                 <ShimmerPlaceholder height={30} width="60%" borderRadius={6} />
-                <ShimmerPlaceholder height={20} width="60%" borderRadius={6} />
               </View>
             ))}
           </View>
@@ -492,6 +515,8 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
             <OrderTable
               orderLines={orderLines}
               onDeleteProduct={deleteProduct}
+              onUpdateQuantity={updateQuantity}
+              isEditable={!cancellationOrder || orderStatus === "UNCONFIRMED"}
             />
           </ScrollView>
         )}
@@ -510,11 +535,8 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
             )}
             {renderSlotSelection()}
             <TouchableOpacity
-              style={[
-                styles.confirmButton, 
-                isFinalizing && { opacity: 0.6 } 
-              ]}
-              onPress={ConfirmOrder}
+              style={[styles.confirmButton, isFinalizing && { opacity: 0.6 }]}
+              onPress={() => setConfirmOrderModalVisible(true)}
               disabled={isFinalizing}
             >
               <Text style={styles.confirmButtonText}>
@@ -550,7 +572,10 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
           setStatus={setCustomerVisible}
           visible={customerVisible}
           onClose={() => setCustomerVisible(false)}
-          onPress={() => navigation.navigate("createCustomer")}
+          onPress={() => {
+            setCustomerVisible(false);
+            navigation.navigate("createCustomer");
+          }}
         >
           <CustomerList
             customerPersonalInfo={setSelectedCustomerData}
@@ -586,13 +611,12 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
 
       <Portal>
         <Modal
-          visible={backConfirmVisible}
-          onDismiss={() => setBackConfirmVisible(false)}
+          visible={cancelModalVisible}
+          onDismiss={() => setCancelModalVisible(false)}
           contentContainerStyle={styles.modalContainer}
         >
           <Text style={{ fontSize: 16, marginBottom: 20, color: theme.text }}>
-            Are you sure you want to go back? Your draft order will be
-            cancelled.
+            Are you sure you want to cancel this order?
           </Text>
 
           <View
@@ -602,15 +626,73 @@ const [orderDraftFinalize, { loading: isFinalizing }] = useMutation(ORDER_DRAFT_
               gap: 20,
             }}
           >
-            <TouchableOpacity onPress={() => setBackConfirmVisible(false)}>
-              <Text style={{ color: theme.secondary, fontWeight: "600" }}>
+            <TouchableOpacity onPress={() => setCancelModalVisible(false)}>
+              <Text
+                style={{
+                  color: theme.secondary,
+                  fontWeight: "600",
+                  fontSize: 16,
+                }}
+              >
                 No
               </Text>
             </TouchableOpacity>
 
-            {/* FIX: Used theme.error instead of undefined colors.CANCELED */}
-            <TouchableOpacity onPress={() => confirmBack(order_id)}>
-              <Text style={{ color: theme.error, fontWeight: "600" }}>Yes</Text>
+            <TouchableOpacity onPress={handleConfirmCancel}>
+              <Text
+                style={{ color: theme.error, fontWeight: "600", fontSize: 16 }}
+              >
+                Yes, Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={confirmOrderModalVisible}
+          onDismiss={() => setConfirmOrderModalVisible(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text style={{ fontSize: 16, marginBottom: 20, color: theme.text }}>
+            Are you sure you want to confirm and place this order?
+          </Text>
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              gap: 20,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setConfirmOrderModalVisible(false)}
+            >
+              <Text
+                style={{
+                  color: theme.secondary,
+                  fontWeight: "600",
+                  fontSize: 16,
+                }}
+              >
+                No
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setConfirmOrderModalVisible(false);
+                ConfirmOrder();
+              }}
+            >
+              <Text
+                style={{
+                  color: theme.deliveryDate || "#4ade80",
+                  fontWeight: "600",
+                  fontSize: 16,
+                }}
+              >
+                Yes, Confirm
+              </Text>
             </TouchableOpacity>
           </View>
         </Modal>

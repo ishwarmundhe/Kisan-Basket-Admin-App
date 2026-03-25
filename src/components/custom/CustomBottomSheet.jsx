@@ -6,14 +6,12 @@ import {
   Animated,
   Pressable,
   Dimensions,
-  TouchableHighlight,
+  TouchableOpacity, // <-- Switched to TouchableOpacity
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
+  TouchableWithoutFeedback
 } from "react-native";
 
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../constant/ThemeContext";
 
 const useStyle = (theme) => {
@@ -33,14 +31,12 @@ const useStyle = (theme) => {
         height: "100%",
         justifyContent: "flex-end",
       },
-
       bottomSheet: {
         width: "100%",
         borderTopRightRadius: 24,
         borderTopLeftRadius: 24,
         paddingVertical: 20,
       },
-
       handlerBar: {
         width: 90,
         height: 4,
@@ -92,19 +88,17 @@ const BottomSheet = ({
     const showSub = Keyboard.addListener("keyboardDidShow", (event) => {
       setKeyboardOffset(event.endCoordinates.height);
     });
-
     const hideSub = Keyboard.addListener("keyboardDidHide", () => {
       setKeyboardOffset(0);
     });
-
     return () => {
       showSub.remove();
       hideSub.remove();
     };
   }, []);
 
-  // console.log("keyboard", keyboardOffset);
   const slide = React.useRef(new Animated.Value(screenHeight)).current;
+  
   const calculateHeight = () => {
     return typeof height === "string" && height.includes("%")
       ? (parseFloat(height) / 100) * screenHeight
@@ -137,10 +131,13 @@ const BottomSheet = ({
   const bottomSheetHeight = calculateHeight();
 
   return (
-    <SafeAreaView onPress={slideDown} style={styles.backdrop}>
-      <Pressable style={{ height: bottomSheetHeight || calculateHeight() }}>
+  <Pressable onPress={slideDown} style={styles.backdrop}>
+      
+      {/* 3. Wrap your bottom sheet content in TouchableWithoutFeedback. 
+          This acts as a "shield" so taps inside the white area don't trigger the background close, 
+          but still allows buttons inside it to be clicked! */}
+      <TouchableWithoutFeedback>
         <Animated.View
-          // onLayout={(event) => setBottomSheetHeight(event.nativeEvent.layout.height)}
           style={[
             styles.bottomSheet,
             {
@@ -151,9 +148,17 @@ const BottomSheet = ({
             { transform: [{ translateY: slide }], backgroundColor },
           ]}
         >
-          <Pressable onPress={() => {}} style={styles.handlerBar} />
+          <View style={styles.handlerBar} /> 
+          
           <View
-            style={{ flexDirection: "row", justifyContent: "space-around" }}
+            style={{ 
+              flexDirection: "row", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              paddingHorizontal: 15,
+              marginBottom: 10,
+              zIndex: 10 // <-- Added zIndex to ensure it sits above other layers
+            }}
           >
             <Text
               style={[styles.titleText, { fontStyle, textAlign, fontSize }]}
@@ -161,19 +166,19 @@ const BottomSheet = ({
               {title}
             </Text>
             {addCustomer && (
-              <TouchableHighlight
+              <TouchableOpacity
                 style={styles.fab}
                 onPress={onPress}
                 hitSlop={{ left: 20, right: 20, top: 20, bottom: 20 }}
               >
                 <Ionicons name="person-add" size={20} color={"#FFFFFF"} />
-              </TouchableHighlight>
+              </TouchableOpacity>
             )}
           </View>
           <View style={{ flex: 1 }}>{children}</View>
         </Animated.View>
-      </Pressable>
-    </SafeAreaView>
+      </TouchableWithoutFeedback>
+    </Pressable>
   );
 };
 

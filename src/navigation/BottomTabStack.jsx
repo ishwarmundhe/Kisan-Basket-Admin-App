@@ -8,7 +8,7 @@ import { useTheme } from "../constant/ThemeContext";
 import TodayOrderScreen from "../screens/app/orderTab/Order";
 import CustomerDetailScreen from "../screens/app/customerTab/CustomerScreen";
 import ProductListScreen from "../screens/app/productsTab/ProductList";
-import LedgerAdminScreen from "../screens/admin/LedgerAdminScreen"; // Updated import
+import LedgerAdminScreen from "../screens/admin/LedgerAdminScreen";
 
 const Tab = createBottomTabNavigator();
 const { height } = Dimensions.get("window");
@@ -49,7 +49,6 @@ const BottomTabs = () => {
       })}
     >
       <Tab.Screen
-        
         name="Home"
         component={TodayOrderScreen}
         options={({ navigation }) => ({
@@ -71,7 +70,7 @@ const BottomTabs = () => {
         component={LedgerAdminScreen}
         options={{
           title: "Expense",
-          headerShown: true, // Show header for the ledger screen
+          headerShown: true,
         }}
       />
     </Tab.Navigator>
