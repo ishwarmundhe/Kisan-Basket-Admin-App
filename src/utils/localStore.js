@@ -18,7 +18,6 @@ export const localStore = {
     }
   },
   setRefreshToken: async (refreshToken) => {
-    // console.log('set-token-local-store', refreshToken);
     try {
       await AsyncStorage.setItem("refreshToken", refreshToken);
     } catch (err) {

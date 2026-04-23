@@ -16,7 +16,6 @@ const ImageWithFallback = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const handleError = error => {
-    console.log('Image load error:', src, error.nativeEvent?.error);
     setHasError(true);
     setIsLoading(false);
   };

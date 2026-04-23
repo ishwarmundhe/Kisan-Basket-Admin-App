@@ -401,14 +401,11 @@ const ProductPriceUpdateScreen = () => {
 
       await RNFetchBlob.fs.writeFile(filePath, base64, "base64");
 
-      // Open PDF
       if (Platform.OS === "android") {
         await RNFetchBlob.android.actionViewIntent(filePath, "application/pdf");
       } else {
         RNFetchBlob.ios.previewDocument(filePath);
       }
-
-      console.log("PDF saved to:", filePath);
     } catch (error) {
       toast.error("Failed to generate PDF");
       console.error("PDF error:", error);

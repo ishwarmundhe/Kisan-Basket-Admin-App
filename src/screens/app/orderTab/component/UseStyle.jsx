@@ -65,7 +65,7 @@ export const useStyle = (theme) =>
     buttonText: {
       color: theme.text, // White
       fontWeight: "600",
-      fontSize: 14,
+      fontSize: 12,
     },
     statusBadge: {
       paddingHorizontal: 16,
@@ -81,7 +81,6 @@ export const useStyle = (theme) =>
       textTransform: "uppercase",
     },
 
-    // --- INPUTS (Select Customer, Date, Slot) ---
     selectionInput: {
       flexDirection: "row",
       alignItems: "center",
@@ -92,6 +91,7 @@ export const useStyle = (theme) =>
       borderRadius: 8,
       paddingHorizontal: 16,
       height: 50,
+      marginTop: 10,
       marginBottom: 12,
       marginHorizontal: 16,
     },

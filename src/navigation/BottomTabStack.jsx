@@ -9,6 +9,7 @@ import TodayOrderScreen from "../screens/app/orderTab/Order";
 import CustomerDetailScreen from "../screens/app/customerTab/CustomerScreen";
 import ProductListScreen from "../screens/app/productsTab/ProductList";
 import LedgerAdminScreen from "../screens/admin/LedgerAdminScreen";
+import DeliveryMainScreen from "../screens/app/deliveryTab/Deliverymainscreen";
 
 const Tab = createBottomTabNavigator();
 const { height } = Dimensions.get("window");
@@ -43,6 +44,8 @@ const BottomTabs = () => {
             iconName = focused ? "pricetags" : "pricetags-outline";
           } else if (route.name === "Ledger") {
             iconName = focused ? "wallet" : "wallet-outline";
+          } else if (route.name === "Delivery") {
+            iconName = focused ? "bicycle" : "bicycle-outline";
           }
           return <Ionicons name={iconName} size={22} color={color} />;
         },
@@ -52,7 +55,7 @@ const BottomTabs = () => {
         name="Home"
         component={TodayOrderScreen}
         options={({ navigation }) => ({
-          title: "Today Orders",
+          title: "Orders",
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("profile")}
@@ -73,6 +76,7 @@ const BottomTabs = () => {
           headerShown: true,
         }}
       />
+      <Tab.Screen name="Delivery" component={DeliveryMainScreen} />
     </Tab.Navigator>
   );
 };

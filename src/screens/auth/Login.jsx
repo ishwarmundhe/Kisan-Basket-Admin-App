@@ -28,7 +28,6 @@ const Login = ({ navigation }) => {
   const [secureText, setSecureText] = useState(true);
   const [loginApp, { loading }] = useMutation(TOKEN_AUTH);
 
-  // Use useMemo for styles to avoid recalculating on every render
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -151,7 +150,6 @@ const Login = ({ navigation }) => {
           <Text style={styles.subtitle}>Sign in to your account</Text>
         </View>
 
-        {/* Email Field */}
         <Text style={styles.inputLabel}>Email or Username</Text>
         <View style={styles.inputContainer}>
           <User color={theme.secondary} size={20} style={styles.inputIcon} />
@@ -166,7 +164,6 @@ const Login = ({ navigation }) => {
           />
         </View>
 
-        {/* Password Field */}
         <Text style={styles.inputLabel}>Password</Text>
         <View style={styles.inputContainer}>
           <Lock color={theme.secondary} size={20} style={styles.inputIcon} />
@@ -190,7 +187,6 @@ const Login = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Login Button */}
         <TouchableOpacity
           style={[styles.button, loading && styles.disabledButton]}
           onPress={handleLogin}

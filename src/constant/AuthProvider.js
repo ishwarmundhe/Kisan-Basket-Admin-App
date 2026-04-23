@@ -1,13 +1,14 @@
 import React, { createContext, useState, useEffect } from "react";
+import { Alert } from "react-native";
 import { localStore } from "../localStore/LocalStore";
-import { setLogout } from "./AuthService";
+import { setLogout, setTokenUpdater } from "./AuthService";
 import { useDispatch } from "react-redux";
 import {
   setToken as setAuthToken,
   setUser as setAuthUser,
   logout as logoutAuth,
 } from "../redux/slices/authSlice";
-import { GRAPHQL_BASE_URL, API_BASE_URL } from "@env";
+import { GRAPHQL_BASE_URL } from "@env";
 
 export const AuthContext = createContext();
 
@@ -31,8 +32,6 @@ export const AuthProvider = ({ children }) => {
 
         setToken(savedToken);
         setUser(parsedUser);
-
-        // Sync to Redux Store
         dispatch(setAuthToken(savedToken));
         dispatch(setAuthUser(parsedUser));
       }
@@ -47,17 +46,22 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
+  useEffect(() => {
+    setLogout(logout);
+    setTokenUpdater((newToken) => {
+      setToken(newToken);
+      dispatch(setAuthToken(newToken));
+    });
+  }, []);
+
   const login = async (userData, userToken, refreshToken) => {
     try {
       await localStore.setUserInfo(userData);
       await localStore.setToken(userToken);
       await localStore.setRefreshToken(refreshToken);
 
-      // Update Local State
       setToken(userToken);
       setUser(userData);
-
-      // Update Redux State
       dispatch(setAuthToken(userToken));
       dispatch(setAuthUser(userData));
     } catch (error) {
@@ -69,15 +73,9 @@ export const AuthProvider = ({ children }) => {
     try {
       await localStore.clear();
 
-      // Clear Local State
       setToken(null);
       setUser(null);
-
-      // Clear Redux State
       dispatch(logoutAuth());
-
-      // Clear RTK Query Cache (Optional but recommended)
-      // dispatch(ledgerApi.util.resetApiState());
     } catch (error) {
       console.error("Failed to clear local storage:", error);
     }
@@ -87,25 +85,17 @@ export const AuthProvider = ({ children }) => {
     try {
       const refreshToken = await localStore.getRefreshToken();
 
-      if (!refreshToken) {
-        throw new Error("No refresh token available");
-      }
+      if (!refreshToken) throw new Error("No refresh token available");
 
       const response = await fetch(GRAPHQL_BASE_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: `
             mutation refreshToken($refreshToken: String!) {
               tokenRefresh(refreshToken: $refreshToken) {
                 token
-                errors {
-                  code
-                  field
-                  message
-                }
+                errors { code field message }
               }
             }
           `,
@@ -113,36 +103,29 @@ export const AuthProvider = ({ children }) => {
         }),
       });
 
-      const jsonResponse = await response.json();
-      const data = jsonResponse?.data;
+      const json = await response.json();
+      const refreshData = json?.data?.tokenRefresh;
 
-      if (data?.tokenRefresh?.errors?.length > 0) {
-        console.log("Refresh logic failed on backend validation");
-        throw new Error(data.tokenRefresh.errors[0].message);
+      if (refreshData?.errors?.length > 0) {
+        throw new Error(refreshData.errors[0].message);
       }
 
-      const newToken = data?.tokenRefresh?.token;
+      const newToken = refreshData?.token;
 
-      if (newToken) {
-        await localStore.setToken(newToken);
-        setToken(newToken);
-        dispatch(setAuthToken(newToken));
+      if (!newToken) throw new Error("Token refresh returned no token");
 
-        return newToken;
-      } else {
-        throw new Error("Token refresh returned no token");
-      }
+      await localStore.setToken(newToken);
+      setToken(newToken);
+      dispatch(setAuthToken(newToken));
+
+      return newToken;
     } catch (error) {
-      console.error("Token Refresh Failed:", error);
+      console.error("Token refresh failed:", error);
       await logout();
       Alert.alert("Session Expired", "Please login again.");
       return null;
     }
   };
-
-  useEffect(() => {
-    setLogout(logout);
-  }, [logout]);
 
   return (
     <AuthContext.Provider

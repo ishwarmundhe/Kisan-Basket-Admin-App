@@ -16,7 +16,6 @@
 //   ActivityIndicator,
 //   RefreshControl,
 //   Modal,
-//   Alert,
 //   Animated,
 // } from "react-native";
 // import { Card, Text, FAB } from "react-native-paper";
@@ -28,12 +27,18 @@
 // import ShimmerPlaceholder from "../../../components/custom/shimmerLoaderPlaceholder";
 // import ErrorMessage from "../../../components/custom/errorMessage";
 // import { colors } from "../../../constant/Colors";
+// import dayjs from "dayjs";
+// import { CHANNEL } from "@env";
+
 // import {
 //   ORDER_LIST_QUERY,
 //   MONTH_TOTAL_ORDERS,
 //   WAREHOUSE_LIST,
 //   ORDER_FULFILL_DATA,
+//   CHECKOUT_SHIPPING_METHODS_QUERY,
+//   GET_CHANNELS,
 // } from "../../../graphql/Query";
+
 // import {
 //   ORDER_DRAFT_CREATE,
 //   ORDER_CONFIRM,
@@ -46,9 +51,7 @@
 // import { useTheme } from "../../../constant/ThemeContext";
 // import DashboardStats from "../productsTab/DashboardStats";
 // import moment from "moment";
-// import { Select } from "../../../components/ui/Select";
 
-// // Status color mapping
 // const STATUS_COLORS = {
 //   CANCELED: colors.CANCELED,
 //   UNCONFIRMED: colors.UNCONFIRMED,
@@ -56,14 +59,24 @@
 //   DEFAULT: colors.WHITE,
 // };
 
+// let persistedSelectedDate = new Date();
+
 // const useStyle = (theme) =>
 //   useMemo(
 //     () =>
 //       StyleSheet.create({
-//         // --- LAYOUT & SPACING ---
+//         orderLoadingOverlay: {
+//           ...StyleSheet.absoluteFillObject,
+//           backgroundColor: "rgba(0,0,0,0.5)",
+//           justifyContent: "center",
+//           alignItems: "center",
+//           borderRadius: 8,
+//           zIndex: 10,
+//           elevation: 10,
+//         },
 //         searchCreateContainer: {
 //           flexDirection: "row",
-//           gap: 12, // Increased gap for better breathing room
+//           gap: 12,
 //           marginBottom: 16,
 //         },
 //         messageContainer: {
@@ -73,50 +86,50 @@
 //         },
 //         errorText: {
 //           fontSize: 16,
-//           color: theme.secondary, // Use muted text for errors/empty states
+//           color: theme.secondary,
 //         },
 //         flatListContent: {
 //           gap: 12,
 //           paddingTop: 10,
-//           paddingBottom: 80, // Space for FAB
+//           paddingBottom: 80,
 //         },
 
-//         // --- CARDS (The core "Black Item" look) ---
+//         // --- CARDS ---
 //         card: {
-//           borderRadius: 8, // Slightly sharper corners (Shadcn style)
+//           borderRadius: 8,
 //           padding: 16,
-//           marginHorizontal: 0, // Remove side margins if inside a padded container
-//           backgroundColor: theme.primary, // Zinc 900
-//           borderColor: theme.border, // Zinc 800
+//           marginHorizontal: 16,
+//           backgroundColor: theme.primary,
+//           borderColor: theme.border,
 //           borderWidth: 1,
 //         },
 //         cardInner: {
 //           flexDirection: "row",
 //           justifyContent: "space-between",
-//           alignItems: "flex-start", // Align top to handle variable text heights
+//           alignItems: "flex-start",
 //         },
 //         cardTitle: {
-//           color: theme.heading, // White
+//           color: theme.heading,
 //           fontSize: 16,
-//           fontWeight: "600", // Semi-bold looks cleaner than bold in dark mode
+//           fontWeight: "600",
 //           marginBottom: 6,
 //           lineHeight: 22,
 //         },
 //         cardText: {
-//           color: theme.secondary, // Zinc 400 (Muted)
+//           color: theme.secondary,
 //           fontSize: 14,
 //           marginBottom: 4,
 //         },
 //         addressTitle: {
-//           color: theme.text, // Zinc 50 (Brighter than secondary)
+//           color: theme.text,
 //           fontWeight: "500",
 //         },
 //         deliveryText: {
 //           marginTop: 8,
-//           color: theme.deliveryDate, // Green 400
+//           color: theme.deliveryDate,
 //           fontWeight: "600",
 //           fontSize: 13,
-//           backgroundColor: `${theme.deliveryDate}15`, // Very subtle background tint
+//           backgroundColor: `${theme.deliveryDate}15`,
 //           alignSelf: "flex-start",
 //           paddingHorizontal: 8,
 //           paddingVertical: 2,
@@ -134,26 +147,43 @@
 //           borderRadius: 8,
 //           paddingHorizontal: 12,
 //           height: 48,
-//           backgroundColor: theme.primary, // Zinc 900
+//           backgroundColor: theme.primary,
 //         },
 //         searchInput: {
 //           flex: 1,
 //           marginLeft: 8,
-//           color: theme.text, // White text
+//           color: theme.text,
 //           fontSize: 15,
 //         },
+
+//         dateRowContainer: {
+//           flexDirection: "row",
+//           alignItems: "center",
+//           gap: 10,
+//           marginBottom: 16,
+//         },
 //         dateInput: {
+//           flex: 1,
 //           height: 48,
 //           paddingHorizontal: 12,
 //           flexDirection: "row",
 //           alignItems: "center",
-//           gap: 10,
+//           justifyContent: "space-between",
 //           borderWidth: 1,
 //           borderColor: theme.border,
 //           borderRadius: 8,
-//           marginTop: 0, // Removed top margin to fit better in layout
-//           marginBottom: 16,
 //           backgroundColor: theme.primary,
+//         },
+
+//         iconButton: {
+//           width: 38,
+//           height: 48,
+//           borderWidth: 1,
+//           borderColor: theme.border,
+//           borderRadius: 8,
+//           backgroundColor: theme.primary,
+//           justifyContent: "center",
+//           alignItems: "center",
 //         },
 //         datePickerStyle: {
 //           color: theme.text,
@@ -164,28 +194,28 @@
 //         // --- BUTTONS ---
 //         createButton: {
 //           borderWidth: 1,
-//           borderColor: theme.textSecondary, // White border
+//           borderColor: theme.textSecondary,
 //           paddingHorizontal: 20,
 //           borderRadius: 8,
 //           height: 48,
-//           backgroundColor: theme.textSecondary, // White Background (Inverted)
+//           backgroundColor: theme.textSecondary,
 //           justifyContent: "center",
 //           alignItems: "center",
 //         },
 //         createButtonText: {
-//           color: theme.background, // **FIX: Black text on White button**
+//           color: theme.background,
 //           fontWeight: "600",
 //           fontSize: 14,
 //         },
 
-//         // --- ACTION BUTTONS (Subtle Dark Mode Style) ---
+//         // --- ACTION BUTTONS ---
 //         actionContainer: {
 //           flexDirection: "row",
-//           justifyContent: "flex-end", // Align actions to right
+//           justifyContent: "flex-end",
 //           marginTop: 16,
 //           paddingTop: 16,
 //           borderTopWidth: 1,
-//           borderTopColor: theme.border, // Separator line
+//           borderTopColor: theme.border,
 //           gap: 10,
 //         },
 //         actionBtn: {
@@ -196,10 +226,14 @@
 //           justifyContent: "center",
 //           minWidth: 80,
 //         },
-//         // Using slightly desaturated colors for dark mode to reduce eye strain
-//         confirmBtn: { backgroundColor: "#059669", borderWidth: 0 }, // Emerald 600
-//         fulfillBtn: { backgroundColor: "#2563eb", borderWidth: 0 }, // Blue 600
-//         paidBtn: { backgroundColor: "#d97706", borderWidth: 0 }, // Amber 600
+//         confirmBtn: { backgroundColor: "#059669", borderWidth: 0 },
+//         fulfillBtn: { backgroundColor: "#2563eb", borderWidth: 0 },
+//         paidBtn: { backgroundColor: "#d97706", borderWidth: 0 },
+//         orderPaid: {
+//           borderWidth: 1,
+//           borderColor: "#88E788",
+//           backgroundColor: "#ecfcec",
+//         },
 //         btnText: {
 //           color: "#FFFFFF",
 //           fontWeight: "600",
@@ -208,9 +242,9 @@
 
 //         // --- ICONS & EXTRAS ---
 //         shareButton: {
-//           backgroundColor: theme.shareButtonColor, // Zinc 800
+//           backgroundColor: theme.shareButtonColor,
 //           padding: 8,
-//           borderRadius: 8, // Square-ish with radius looks more modern than circle
+//           borderRadius: 8,
 //           borderWidth: 1,
 //           borderColor: theme.border,
 //         },
@@ -221,7 +255,6 @@
 //           backgroundColor: "#18181b",
 //           borderWidth: 1,
 //           borderColor: "#27272a",
-
 //           width: 60,
 //           height: 60,
 //           borderRadius: 30,
@@ -233,18 +266,17 @@
 //           shadowOpacity: 0.3,
 //           shadowRadius: 4,
 //         },
-//         fabIconColor: "#fafafa",
 
-//         // --- MODAL ---
+//         // --- MODALS & OVERLAYS ---
 //         modalOverlay: {
 //           flex: 1,
-//           backgroundColor: "rgba(0,0,0,0.8)", // Darker overlay for focus
+//           backgroundColor: "rgba(0,0,0,0.8)",
 //           justifyContent: "center",
 //           alignItems: "center",
 //         },
 //         modalContent: {
 //           width: "90%",
-//           backgroundColor: theme.primary, // Zinc 900
+//           backgroundColor: theme.primary,
 //           borderRadius: 12,
 //           padding: 24,
 //           borderWidth: 1,
@@ -257,12 +289,15 @@
 //           marginBottom: 20,
 //           textAlign: "center",
 //         },
-//         warehouseItem: {
+//         modalItem: {
 //           paddingVertical: 16,
 //           borderBottomWidth: 1,
 //           borderBottomColor: theme.border,
+//           flexDirection: "row",
+//           justifyContent: "space-between",
+//           alignItems: "center",
 //         },
-//         warehouseText: {
+//         modalText: {
 //           color: theme.text,
 //           fontSize: 16,
 //         },
@@ -274,6 +309,13 @@
 //           alignItems: "center",
 //         },
 
+//         fullScreenLoaderText: {
+//           color: "#FFFFFF",
+//           marginTop: 12,
+//           fontSize: 16,
+//           fontWeight: "600",
+//         },
+
 //         // --- SKELETON ---
 //         shimmerCard: {
 //           backgroundColor: theme.primary,
@@ -283,11 +325,29 @@
 //           padding: 16,
 //           marginBottom: 12,
 //         },
+
+//         rightActions: {
+//           alignItems: "flex-end",
+//         },
+//         unpaidBadge: {
+//           backgroundColor: "rgba(239, 68, 68, 0.15)",
+//           paddingHorizontal: 4,
+//           paddingVertical: 4,
+//           borderRadius: 4,
+//           borderWidth: 1,
+//           borderColor: "rgba(239, 68, 68, 0.4)",
+//           marginBottom: 8,
+//         },
+//         unpaidBadgeText: {
+//           color: theme.error || "#ef4444",
+//           fontSize: 10,
+//           fontWeight: "700",
+//           textTransform: "uppercase",
+//         },
 //       }),
 //     [theme],
 //   );
 
-// // --- COMPONENT: Warehouse Selection Modal ---
 // const WarehouseModal = ({
 //   visible,
 //   onClose,
@@ -319,10 +379,10 @@
 //               keyExtractor={(item) => item.node.id}
 //               renderItem={({ item }) => (
 //                 <TouchableOpacity
-//                   style={styles.warehouseItem}
+//                   style={styles.modalItem}
 //                   onPress={() => onSelect(item.node.id)}
 //                 >
-//                   <Text style={styles.warehouseText}>{item.node.name}</Text>
+//                   <Text style={styles.modalText}>{item.node.name}</Text>
 //                 </TouchableOpacity>
 //               )}
 //             />
@@ -335,8 +395,6 @@
 //     </Modal>
 //   );
 // };
-
-// // ... imports remain the same
 
 // const OrderItem = React.memo(
 //   ({
@@ -354,76 +412,111 @@
 //     const { theme } = useTheme();
 //     const styles = useStyle(theme);
 
-//     // --- COLOR LOGIC ---
 //     const lines = order?.lines || [];
 
-//     const hasOil = lines.some((l) =>
-//       l.productName?.toLowerCase().includes("oil"),
+//     const matchesCategory = (line, keyword) => {
+//       const categoryName =
+//         line?.variant?.product?.category?.name?.toLowerCase() || "";
+//       const productName = line?.productName?.toLowerCase() || "";
+//       return categoryName.includes(keyword) || productName.includes(keyword);
+//     };
+
+//     const hasOil = lines.some((l) => matchesCategory(l, "oil"));
+//     const hasAtta = lines.some((l) => matchesCategory(l, "atta"));
+//     const hasSpices = lines.some(
+//       (l) =>
+//         matchesCategory(l, "spice") ||
+//         matchesCategory(l, "masala") ||
+//         matchesCategory(l, "powder"),
 //     );
-//     const hasAtta = lines.some((l) =>
-//       l.productName?.toLowerCase().includes("atta"),
+//     const hasPulses = lines.some(
+//       (l) => matchesCategory(l, "pulse") || matchesCategory(l, "dal"),
+//     );
+//     const hasPaneer = lines.some(
+//       (l) =>
+//         matchesCategory(l, "dairy") ||
+//         matchesCategory(l, "paneer") ||
+//         matchesCategory(l, "malai"),
 //     );
 
-//     // Default Style (Vegetable / Standard) - Zinc Style
-//     let cardStyle = styles.card;
-//     let statusColor = colors.UNCONFIRMED;
-
-//     // PRIORITY 1: OIL (Yellow)
-//     let dynamicCardStyle = {};
+//     let dynamicCardStyle = {
+//       backgroundColor: "#18181b",
+//       borderColor: theme.border,
+//     };
 
 //     if (hasOil) {
 //       dynamicCardStyle = {
-//         backgroundColor: "rgba(234, 179, 8, 0.15)", // Yellow tint
+//         backgroundColor: "rgba(234, 179, 8, 0.15)",
 //         borderColor: "#eab308",
 //       };
 //     } else if (hasAtta) {
 //       dynamicCardStyle = {
-//         backgroundColor: "rgba(249, 115, 22, 0.15)", // Orange tint
+//         backgroundColor: "rgba(249, 115, 22, 0.15)",
 //         borderColor: "#f97316",
 //       };
-//     } else {
+//     } else if (hasSpices) {
 //       dynamicCardStyle = {
-//         backgroundColor: "#18181b", // Veg subtle green
-//         borderColor: theme.border,
+//         backgroundColor: "rgba(239, 68, 68, 0.15)",
+//         borderColor: "#ef4444",
+//       };
+//     } else if (hasPulses) {
+//       dynamicCardStyle = {
+//         backgroundColor: "rgba(16, 185, 129, 0.15)",
+//         borderColor: "#10b981",
+//       };
+//     } else if (hasPaneer) {
+//       dynamicCardStyle = {
+//         backgroundColor: "rgba(6, 182, 212, 0.15)",
+//         borderColor: "#06b6d4",
 //       };
 //     }
 
-//     // ─── 2. APPLY CANCELED OPACITY ───
 //     const isCanceled = order?.status === "CANCELED";
-
 //     const finalCardStyle = [
 //       styles.card,
 //       dynamicCardStyle,
 //       isCanceled && {
-//         opacity: 0.4, // Dim the card significantly
-//         borderColor: theme.border, // Reset border to muted color
-//         backgroundColor: theme.primary, // Reset to standard dark background
+//         opacity: 0.4,
+//         borderColor: theme.border,
+//         backgroundColor: theme.primary,
 //       },
+//       { overflow: "hidden" },
 //     ];
 
 //     const fullName =
 //       `${order?.billingAddress?.firstName ?? ""} ${order?.billingAddress?.lastName ?? ""}`.trim();
 //     const addressLine1 = order?.billingAddress?.streetAddress1 ?? "";
-
-//     // Helper to list items nicely
 //     const itemNames = lines.map((l) => l.productName).join(", ");
+//     const isActionLoading = loadingActionId === order?.id;
 
 //     return (
-//       <TouchableOpacity onPress={() => onPress(order?.id)}>
+//       <TouchableOpacity
+//         style={{ position: "relative" }}
+//         onPress={() => onPress(order?.id)}
+//         disabled={isActionLoading}
+//       >
 //         <Card style={finalCardStyle}>
+//           <View style={styles.rightActions}>
+//             {!order?.isPaid &&
+//               !isCanceled &&
+//               !["UNCONFIRMED", "UNFULFILLED", "PARTIALLY_FULFILLED"].includes(
+//                 order?.status,
+//               ) && (
+//                 <View style={styles.unpaidBadge}>
+//                   <Text style={styles.unpaidBadgeText}>Payment Pending</Text>
+//                 </View>
+//               )}
+//           </View>
+
 //           <View style={styles.cardInner}>
 //             <View style={{ flex: 1 }}>
 //               <Text style={styles.cardTitle}>{addressLine1}</Text>
-
 //               <Text style={styles.cardText}>
 //                 Name: <Text style={styles.addressTitle}>{fullName}</Text>
 //               </Text>
-
-//               {/* Show Items for easier identification */}
 //               <Text style={styles.cardText} numberOfLines={1}>
 //                 Items: <Text style={{ color: theme.text }}>{itemNames}</Text>
 //               </Text>
-
 //               <Text style={styles.cardText}>
 //                 Status:{" "}
 //                 <Text
@@ -436,18 +529,15 @@
 //                   {order?.status}
 //                 </Text>
 //               </Text>
-
 //               <Text style={styles.cardText}>
 //                 Amount: {order?.total?.gross?.currency}{" "}
 //                 {order?.total?.gross?.amount}
 //               </Text>
-
 //               <Text style={styles.deliveryText}>
 //                 Delivery: {order?.deliveryDate ?? "-"}
 //               </Text>
 //             </View>
 
-//             {/* ... Right side buttons (Share, etc) ... */}
 //             <TouchableOpacity
 //               style={styles.shareButton}
 //               onPress={() => onShare(order?.id, order?.status)}
@@ -466,43 +556,52 @@
 //               )}
 //             </TouchableOpacity>
 //           </View>
+
 //           <View style={styles.actionContainer}>
 //             {order?.status === "UNCONFIRMED" && (
 //               <TouchableOpacity
 //                 style={[styles.actionBtn, styles.confirmBtn]}
 //                 onPress={() => onConfirm(order.id)}
-//                 disabled={loadingActionId === order.id}
 //               >
-//                 {loadingActionId === order.id ? (
-//                   <ActivityIndicator color="#FFF" size="small" />
-//                 ) : (
-//                   <Text style={styles.btnText}>Confirm</Text>
-//                 )}
+//                 <Text style={styles.btnText}>Confirm</Text>
+//               </TouchableOpacity>
+//             )}
+
+//             {(order?.status === "UNFULFILLED" ||
+//               order?.status === "PARTIALLY_FULFILLED") && (
+//               <TouchableOpacity
+//                 style={[styles.actionBtn, styles.fulfillBtn]}
+//                 onPress={() => onFulfill(order.id)}
+//               >
+//                 <Text style={styles.btnText}>Fulfill</Text>
+//               </TouchableOpacity>
+//             )}
+
+//             {order?.status === "FULFILLED" && order?.isPaid && (
+//               <View style={[styles.actionBtn, styles.orderPaid]}>
+//                 <Text>Order Paid</Text>
+//               </View>
+//             )}
+
+//             {order?.status === "FULFILLED" && !order?.isPaid && (
+//               <TouchableOpacity
+//                 style={[styles.actionBtn, styles.paidBtn]}
+//                 onPress={() => onMarkPaid(order.id)}
+//               >
+//                 <Text style={styles.btnText}>Mark Paid</Text>
 //               </TouchableOpacity>
 //             )}
 //           </View>
 //         </Card>
+//         {isActionLoading && (
+//           <View style={styles.orderLoadingOverlay}>
+//             <ActivityIndicator size="large" color="#ffffff" />
+//           </View>
+//         )}
 //       </TouchableOpacity>
 //     );
 //   },
 // );
-
-// const LoadingSkeleton = ({ theme }) => {
-//   const styles = useStyle(theme);
-//   return (
-//     <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-//       {[...Array(6)].map((_, index) => (
-//         <View key={index} style={styles.shimmerCard}>
-//           <ShimmerPlaceholder height={30} width="60%" borderRadius={6} />
-//           <ShimmerPlaceholder height={20} width="60%" borderRadius={6} />
-//           <View style={{ marginTop: 5 }}>
-//             <ShimmerPlaceholder height={16} width="80%" borderRadius={4} />
-//           </View>
-//         </View>
-//       ))}
-//     </View>
-//   );
-// };
 
 // export default function ProductSelectionScreen({ navigation }) {
 //   const { theme } = useTheme();
@@ -510,25 +609,29 @@
 
 //   const { globalRefresh, setGlobalRefresh } = useContext(AuthContext);
 //   const [searchQuery, setSearchQuery] = useState("");
-//   const [selectedDate, setSelectedDate] = useState(new Date());
+//   const [selectedDate, setSelectedDate] = useState(persistedSelectedDate);
 //   const [showPicker, setShowPicker] = useState(false);
+//   const [showFilterModal, setShowFilterModal] = useState(false);
+//   const [dateFilterType, setDateFilterType] = useState("deliveryDate");
 //   const [invoiceLoadder, setInvoiceLoading] = useState(false);
 //   const [selectedOrderId, setSelectedOrderId] = useState(null);
 //   const [refreshing, setRefreshing] = useState(false);
-
-//   // New State for Actions
+//   const [activeFilter, setActiveFilter] = useState("All");
 //   const [loadingActionId, setLoadingActionId] = useState(null);
 //   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
 //   const [fulfillTargetOrderId, setFulfillTargetOrderId] = useState(null);
+//   const [showChannelModal, setShowChannelModal] = useState(false);
+
+//   const [confirmOrderModalVisible, setConfirmOrderModalVisible] =
+//     useState(false);
+//   const [confirmTargetOrderId, setConfirmTargetOrderId] = useState(null);
 
 //   const scrollY = useRef(new Animated.Value(0)).current;
 
-//   // ── Measure real heights dynamically ──
 //   const [statsHeight, setStatsHeight] = useState(0);
 //   const [searchHeight, setSearchHeight] = useState(0);
 //   const totalHeaderHeight = statsHeight + searchHeight;
 
-//   // Stats slides up and fades
 //   const statsTranslateY = scrollY.interpolate({
 //     inputRange: [0, statsHeight || 1],
 //     outputRange: [0, -statsHeight],
@@ -540,41 +643,46 @@
 //     extrapolate: "clamp",
 //   });
 
-//   // Search bar moves up by the same amount as stats height
 //   const searchTranslateY = scrollY.interpolate({
 //     inputRange: [0, statsHeight || 1],
 //     outputRange: [0, -statsHeight],
 //     extrapolate: "clamp",
 //   });
 
-//   const getCurrentMonthDateRange = useMemo(
+//   const getSelectedMonthDateRange = useMemo(
 //     () => ({
-//       gte: moment().startOf("month").format("YYYY-MM-DD"),
-//       lte: moment().endOf("month").format("YYYY-MM-DD"),
+//       gte: moment(selectedDate).startOf("month").format("YYYY-MM-DD"),
+//       lte: moment(selectedDate).endOf("month").format("YYYY-MM-DD"),
 //     }),
-//     [],
+//     [selectedDate],
 //   );
 
 //   const todayDate = useMemo(
 //     () => selectedDate?.toLocaleDateString("en-CA"),
 //     [selectedDate],
 //   );
-
-//   // --- QUERIES & MUTATIONS ---
+//   const dateObj = dayjs(selectedDate);
+//   const displayDate = dateObj.format("DD-MM-YYYY");
 
 //   const [
 //     fetchOrders,
 //     { data: orderList, loading, error: orderListError, refetch },
 //   ] = useLazyQuery(ORDER_LIST_QUERY);
 
-//   const { data: monthlyOrdersData } = useQuery(MONTH_TOTAL_ORDERS, {
-//     variables: getCurrentMonthDateRange,
-//   });
+//   console.log("orderList", orderList);
+
+//   const { data: channelsData, loading: channelsLoading } =
+//     useQuery(GET_CHANNELS);
+//   console.log("channelsData", channelsData);
+
+//   const { data: monthlyOrdersData, refetch: refetchMonthlyData } = useQuery(
+//     MONTH_TOTAL_ORDERS,
+//     { variables: getSelectedMonthDateRange },
+//   );
 
 //   const { data: warehouseData, loading: warehouseLoading } =
 //     useQuery(WAREHOUSE_LIST);
 
-//   // Used to get lines before fulfilling
 //   const [fetchFulfillData] = useLazyQuery(ORDER_FULFILL_DATA, {
 //     fetchPolicy: "network-only",
 //   });
@@ -586,7 +694,6 @@
 //   const [markAsPaid] = useMutation(ORDER_MARK_AS_PAID);
 
 //   const orders = useMemo(() => orderList?.orders?.edges ?? [], [orderList]);
-//   console.log("==>", orders);
 //   const hasOrders = orders.length > 0;
 //   const currentMonthOrderCount = monthlyOrdersData?.orders?.totalCount ?? 0;
 
@@ -594,60 +701,184 @@
 //     let atta = 0;
 //     let oil = 0;
 //     let veg = 0;
-
+//     let spices = 0;
+//     let pulses = 0;
+//     let paneer = 0;
 //     orders.forEach((edge) => {
+//       if (edge.node.status === "CANCELED") return;
 //       const lines = edge.node.lines || [];
-//       const hasAtta = lines.some((l) =>
-//         l.productName?.toLowerCase().includes("atta"),
-//       );
-//       const hasOil = lines.some((l) =>
-//         l.productName?.toLowerCase().includes("oil"),
-//       );
-//       const hasVeg = lines.some(
-//         (l) =>
-//           !l.productName?.toLowerCase().includes("atta") &&
-//           !l.productName?.toLowerCase().includes("oil"),
-//       );
-//       if (hasAtta) atta++;
-//       if (hasOil) oil++;
-//       if (hasVeg) veg++;
+//       const checkCategory = (line, keyword) => {
+//         const cat = line?.variant?.product?.category?.name?.toLowerCase() || "";
+//         const name = line?.productName?.toLowerCase() || "";
+//         return cat.includes(keyword) || name.includes(keyword);
+//       };
+//       if (lines.some((l) => checkCategory(l, "atta"))) atta++;
+//       if (lines.some((l) => checkCategory(l, "oil"))) oil++;
+//       if (
+//         lines.some(
+//           (l) =>
+//             checkCategory(l, "spice") ||
+//             checkCategory(l, "masala") ||
+//             checkCategory(l, "powder"),
+//         )
+//       )
+//         spices++;
+//       if (
+//         lines.some((l) => checkCategory(l, "pulse") || checkCategory(l, "dal"))
+//       )
+//         pulses++;
+//       if (
+//         lines.some(
+//           (l) =>
+//             checkCategory(l, "dairy") ||
+//             checkCategory(l, "paneer") ||
+//             checkCategory(l, "malai"),
+//         )
+//       )
+//         paneer++;
+//       if (
+//         lines.some((l) => {
+//           const cat = l?.variant?.product?.category?.name?.toLowerCase() || "";
+//           if (cat.includes("vegetable")) return true;
+//           return (
+//             !checkCategory(l, "atta") &&
+//             !checkCategory(l, "oil") &&
+//             !checkCategory(l, "spice") &&
+//             !checkCategory(l, "masala") &&
+//             !checkCategory(l, "powder") &&
+//             !checkCategory(l, "pulse") &&
+//             !checkCategory(l, "dal") &&
+//             !checkCategory(l, "dairy") &&
+//             !checkCategory(l, "paneer") &&
+//             !checkCategory(l, "malai")
+//           );
+//         })
+//       )
+//         veg++;
 //     });
-
-//     return { atta, oil, veg };
+//     return { atta, oil, veg, spices, pulses, paneer };
 //   }, [orders]);
 
-//   // --- HANDLERS ---
+//   const displayedOrders = useMemo(() => {
+//     if (activeFilter === "All") return orders;
+//     return orders.filter((edge) => {
+//       const lines = edge.node.lines || [];
+//       const checkCategory = (line, keyword) => {
+//         const cat = line?.variant?.product?.category?.name?.toLowerCase() || "";
+//         const name = line?.productName?.toLowerCase() || "";
+//         return cat.includes(keyword) || name.includes(keyword);
+//       };
+//       if (activeFilter === "Atta")
+//         return lines.some((l) => checkCategory(l, "atta"));
+//       if (activeFilter === "Oil")
+//         return lines.some((l) => checkCategory(l, "oil"));
+//       if (activeFilter === "Spices")
+//         return lines.some(
+//           (l) =>
+//             checkCategory(l, "spice") ||
+//             checkCategory(l, "masala") ||
+//             checkCategory(l, "powder"),
+//         );
+//       if (activeFilter === "Pulses")
+//         return lines.some(
+//           (l) => checkCategory(l, "pulse") || checkCategory(l, "dal"),
+//         );
+//       if (activeFilter === "Paneer")
+//         return lines.some(
+//           (l) =>
+//             checkCategory(l, "dairy") ||
+//             checkCategory(l, "paneer") ||
+//             checkCategory(l, "malai"),
+//         );
+//       if (activeFilter === "Vegetable")
+//         return lines.some((l) => {
+//           const cat = l?.variant?.product?.category?.name?.toLowerCase() || "";
+//           if (cat.includes("vegetable")) return true;
+//           return (
+//             !checkCategory(l, "atta") &&
+//             !checkCategory(l, "oil") &&
+//             !checkCategory(l, "spice") &&
+//             !checkCategory(l, "masala") &&
+//             !checkCategory(l, "powder") &&
+//             !checkCategory(l, "pulse") &&
+//             !checkCategory(l, "dal") &&
+//             !checkCategory(l, "dairy") &&
+//             !checkCategory(l, "paneer") &&
+//             !checkCategory(l, "malai")
+//           );
+//         });
+//       return true;
+//     });
+//   }, [orders, activeFilter]);
 
-//   // 1. Confirm Order
+//   const handleChannelSelect = useCallback(
+//     async (channelId) => {
+//       setShowChannelModal(false);
+
+//       try {
+//         const result = await createDraftOrder({
+//           variables: {
+//             input: {
+//               channelId: channelId,
+//             },
+//           },
+//         });
+
+//         console.log("result========>", result);
+
+//         const orderId = result?.data?.draftOrderCreate?.order?.id || "";
+
+//         if (orderId) {
+//           navigation.navigate("createOrder", { order_id: orderId });
+//         } else {
+//           toast.error("Failed to retrieve new draft order ID.");
+//         }
+//       } catch (err) {
+//         toast.error("Failed to create draft order.");
+//         console.error("Draft Creation Error:", err);
+//       }
+//     },
+//     [createDraftOrder, navigation],
+//   );
+
 //   const handleConfirmOrder = async (id) => {
+//     if (!id) return;
 //     setLoadingActionId(id);
 //     try {
 //       const { data } = await confirmOrder({ variables: { id } });
+
 //       if (data?.orderConfirm?.errors?.length > 0) {
 //         toast.error(data.orderConfirm.errors[0].message);
 //       } else {
 //         toast.success("Order Confirmed!");
-//         handleRefresh(); // Refresh list to update status
+//         await handleRefresh();
 //       }
 //     } catch (e) {
-//       console.log("err", e);
-
 //       toast.error("Failed to confirm order");
 //     } finally {
 //       setLoadingActionId(null);
 //     }
 //   };
 
-//   // 2. Mark as Paid
 //   const handleMarkPaid = async (id) => {
 //     setLoadingActionId(id);
 //     try {
 //       const { data } = await markAsPaid({ variables: { id } });
-//       if (data?.orderMarkAsPaid?.errors?.length > 0) {
-//         toast.error(data.orderMarkAsPaid.errors[0].message);
+//       const errors = data?.orderMarkAsPaid?.errors || [];
+//       if (errors.length > 0) {
+//         const error = errors[0];
+//         if (error.field === "payment") {
+//           toast.info("Payment Already Exists", {
+//             description:
+//               "This order has a payment record. You must Capture it instead of using 'Mark Paid'.",
+//             duration: 4000,
+//           });
+//         } else {
+//           toast.error(error.message);
+//         }
 //       } else {
 //         toast.success("Marked as Paid!");
-//         handleRefresh();
+//         await handleRefresh();
 //       }
 //     } catch (e) {
 //       toast.error("Failed to mark as paid");
@@ -656,27 +887,22 @@
 //     }
 //   };
 
-//   // 3. Fulfill - Step 1: Open Warehouse Modal
 //   const onFulfillClick = (id) => {
 //     setFulfillTargetOrderId(id);
 //     setShowWarehouseModal(true);
 //   };
 
-//   // 3. Fulfill - Step 2: Select Warehouse & Execute
 //   const handleFulfillConfirm = async (warehouseId) => {
 //     setShowWarehouseModal(false);
 //     if (!fulfillTargetOrderId) return;
 
 //     setLoadingActionId(fulfillTargetOrderId);
 //     try {
-//       // A. Get Order Lines first (needed for input construction)
 //       const { data: lineData } = await fetchFulfillData({
 //         variables: { orderId: fulfillTargetOrderId },
 //       });
-
 //       const lines = lineData?.order?.lines || [];
 
-//       // Filter lines that actually need fulfillment
 //       const linesInput = lines
 //         .filter((l) => l.quantityToFulfill > 0)
 //         .map((l) => ({
@@ -689,22 +915,19 @@
 //         return;
 //       }
 
-//       // B. Run Mutation
 //       const { data } = await fulfillOrder({
 //         variables: {
 //           orderId: fulfillTargetOrderId,
 //           input: { lines: linesInput },
 //         },
 //       });
-
 //       if (data?.orderFulfill?.errors?.length > 0) {
 //         toast.error(data.orderFulfill.errors[0].message);
 //       } else {
 //         toast.success("Order Fulfilled!");
-//         handleRefresh();
+//         await handleRefresh();
 //       }
 //     } catch (e) {
-//       console.error(e);
 //       toast.error("Fulfillment failed");
 //     } finally {
 //       setLoadingActionId(null);
@@ -714,13 +937,14 @@
 
 //   const debouncedSearch = useMemo(
 //     () =>
-//       debounce((query) => {
+//       debounce((query, filterType = dateFilterType) => {
 //         const safeQuery = query ?? "";
 //         fetchOrders({
 //           variables: {
 //             first: 100,
+
 //             filter: {
-//               created: { gte: todayDate, lte: todayDate },
+//               [filterType]: { gte: todayDate, lte: todayDate },
 //               ...(safeQuery.trim() && { search: safeQuery }),
 //             },
 //             sort: { direction: "DESC", field: "NUMBER" },
@@ -728,7 +952,7 @@
 //           fetchPolicy: "network-only",
 //         });
 //       }, 500),
-//     [fetchOrders, todayDate],
+//     [fetchOrders, todayDate, dateFilterType],
 //   );
 
 //   const handleSearchChange = useCallback(
@@ -739,13 +963,17 @@
 //     [debouncedSearch],
 //   );
 
-//   const orderDraftCreateHandler = useCallback(async () => {
-//     try {
-//       const result = await createDraftOrder();
-//       const orderId = result?.data?.draftOrderCreate?.order?.id || "";
-//       navigation.navigate("createOrder", { order_id: orderId });
-//     } catch {}
-//   }, [createDraftOrder, navigation]);
+//   const orderDraftCreateHandler = useCallback(() => {
+//     setShowChannelModal(true);
+//   }, []);
+
+//   // const orderDraftCreateHandler = useCallback(async () => {
+//   //   try {
+//   //     const result = await createDraftOrder();
+//   //     const orderId = result?.data?.draftOrderCreate?.order?.id || "";
+//   //     navigation.navigate("createOrder", { order_id: orderId });
+//   //   } catch {}
+//   // }, [createDraftOrder, navigation]);
 
 //   const handleOrderDetails = useCallback(
 //     (order_id) => {
@@ -772,7 +1000,10 @@
 //   const onChangeDate = useCallback(
 //     (event, date) => {
 //       setShowPicker(false);
-//       if (date) setSelectedDate(date);
+//       if (date) {
+//         setSelectedDate(date);
+//         persistedSelectedDate = date;
+//       }
 //       debouncedSearch(searchQuery);
 //     },
 //     [debouncedSearch, searchQuery],
@@ -781,20 +1012,56 @@
 //   const handleRefresh = useCallback(async () => {
 //     setRefreshing(true);
 //     try {
-//       await refetch({
-//         first: 100,
-//         filter: {
-//           created: { gte: todayDate, lte: todayDate },
-//           ...(searchQuery.trim() && { search: searchQuery }),
-//         },
-//         sort: { direction: "DESC", field: "NUMBER" },
-//       });
+//       if (refetch) {
+//         await refetch({
+//           first: 100,
+
+//           filter: {
+//             [dateFilterType]: { gte: todayDate, lte: todayDate },
+//             ...(searchQuery.trim() && { search: searchQuery }),
+//           },
+//           sort: { direction: "DESC", field: "NUMBER" },
+//         });
+//       } else {
+//         await fetchOrders({
+//           variables: {
+//             first: 100,
+
+//             filter: {
+//               [dateFilterType]: { gte: todayDate, lte: todayDate },
+//               ...(searchQuery.trim() && { search: searchQuery }),
+//             },
+//             sort: { direction: "DESC", field: "NUMBER" },
+//           },
+//           fetchPolicy: "network-only",
+//         });
+//       }
+//       if (refetchMonthlyData) await refetchMonthlyData();
 //     } catch (e) {
-//       toast.error("Refresh error", e);
+//       toast.error("Refresh error: " + e.message);
 //     } finally {
 //       setRefreshing(false);
 //     }
-//   }, [refetch, todayDate, searchQuery]);
+//   }, [
+//     fetchOrders,
+//     refetch,
+//     refetchMonthlyData,
+//     todayDate,
+//     searchQuery,
+//     dateFilterType,
+//   ]);
+
+//   useFocusEffect(
+//     useCallback(() => {
+//       if (globalRefresh) {
+//         const timer = setTimeout(() => {
+//           handleRefresh();
+//           setGlobalRefresh(false);
+//         }, 100);
+//         return () => clearTimeout(timer);
+//       }
+//     }, [globalRefresh, handleRefresh, setGlobalRefresh]),
+//   );
 
 //   const renderOrderItem = useCallback(
 //     ({ item }) => (
@@ -804,7 +1071,10 @@
 //         onShare={handleGenerateInvoice}
 //         invoiceLoadder={invoiceLoadder}
 //         selectedOrderId={selectedOrderId}
-//         onConfirm={handleConfirmOrder}
+//         onConfirm={(id) => {
+//           setConfirmTargetOrderId(id);
+//           setConfirmOrderModalVisible(true);
+//         }}
 //         onFulfill={onFulfillClick}
 //         onMarkPaid={handleMarkPaid}
 //         loadingActionId={loadingActionId}
@@ -819,19 +1089,9 @@
 //     ],
 //   );
 
-//   useFocusEffect(
-//     useCallback(() => {
-//       if (globalRefresh) {
-//         debouncedSearch("");
-//         setTimeout(() => setGlobalRefresh(false), 300);
-//       }
-//       return () => debouncedSearch.cancel();
-//     }, [debouncedSearch, globalRefresh, setGlobalRefresh]),
-//   );
-
 //   useEffect(() => {
-//     debouncedSearch(searchQuery);
-//   }, [selectedDate]);
+//     debouncedSearch(searchQuery, dateFilterType);
+//   }, [selectedDate, dateFilterType]);
 
 //   useEffect(() => {
 //     return () => debouncedSearch.cancel();
@@ -841,6 +1101,13 @@
 
 //   return (
 //     <ScreenLayout>
+//       <Modal visible={refreshing} transparent={true} animationType="fade">
+//         <View style={styles.modalOverlay}>
+//           <ActivityIndicator size="large" color="#ffffff" />
+//           <Text style={styles.fullScreenLoaderText}>Loading Orders...</Text>
+//         </View>
+//       </Modal>
+
 //       {showPicker && (
 //         <DateTimePicker
 //           value={selectedDate}
@@ -851,7 +1118,6 @@
 //       )}
 
 //       <View style={{ flex: 1 }}>
-//         {/* ── LAYER 1: DashboardStats ── */}
 //         <Animated.View
 //           onLayout={(e) => setStatsHeight(e.nativeEvent.layout.height)}
 //           style={{
@@ -871,18 +1137,25 @@
 //             vegCount={stats.veg}
 //             oilCount={stats.oil}
 //             attaCount={stats.atta}
-//             todaysOrderCount={orders.length}
+//             paneerCount={stats.paneer}
+//             spicesCount={stats.spices}
+//             pulsesCount={stats.pulses}
+//             todaysOrderCount={
+//               orders.filter((order) => order?.node?.status !== "CANCELED")
+//                 .length
+//             }
 //             totalOrdersCount={currentMonthOrderCount}
 //             onPress={() => navigation.navigate("Performance")}
+//             activeFilter={activeFilter}
+//             onFilterSelect={setActiveFilter}
 //           />
 //         </Animated.View>
 
-//         {/* ── LAYER 2: Search + Date (sits below stats, sticks after stats hide) ── */}
 //         <Animated.View
 //           onLayout={(e) => setSearchHeight(e.nativeEvent.layout.height)}
 //           style={{
 //             position: "absolute",
-//             top: statsHeight, // ← starts right below measured stats
+//             top: statsHeight,
 //             left: 0,
 //             right: 0,
 //             zIndex: 2,
@@ -898,7 +1171,7 @@
 //               <TextInput
 //                 style={styles.searchInput}
 //                 placeholderTextColor="#A9A9A9"
-//                 placeholder="Search by name order"
+//                 placeholder="Search order"
 //                 value={searchQuery}
 //                 onChangeText={handleSearchChange}
 //               />
@@ -914,23 +1187,56 @@
 //             </TouchableOpacity>
 //           </View>
 
-//           <TouchableOpacity
-//             style={styles.dateInput}
-//             onPress={() => setShowPicker(true)}
-//           >
-//             <Ionicons name="calendar-outline" size={20} color={colors.WHITE} />
-//             <Text style={styles.datePickerStyle}>{todayDate}</Text>
-//           </TouchableOpacity>
+//           <View style={styles.dateRowContainer}>
+//             <TouchableOpacity
+//               style={styles.dateInput}
+//               onPress={() => setShowPicker(true)}
+//             >
+//               <View
+//                 style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+//               >
+//                 <Ionicons
+//                   name="calendar-outline"
+//                   size={16}
+//                   color={theme.secondary}
+//                 />
+//                 <Text style={styles.btnText}>
+//                   {dateFilterType === "deliveryDate"
+//                     ? "Delivery Date"
+//                     : "Created Date"}
+//                 </Text>
+//               </View>
+//               <Text style={styles.datePickerStyle}>{displayDate}</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.iconButton}
+//               onPress={() => setShowFilterModal(true)}
+//             >
+//               <Ionicons name="filter-outline" size={20} color={theme.text} />
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.iconButton}
+//               onPress={handleRefresh}
+//               disabled={refreshing}
+//             >
+//               {refreshing ? (
+//                 <ActivityIndicator size="small" color={theme.text} />
+//               ) : (
+//                 <Ionicons name="refresh-outline" size={20} color={theme.text} />
+//               )}
+//             </TouchableOpacity>
+//           </View>
 //         </Animated.View>
 
-//         {/* ── LAYER 3: FlatList — paddingTop = exact combined header height ── */}
-//         {totalHeaderHeight > 0 && ( // ← only render once heights are known
+//         {totalHeaderHeight > 0 && (
 //           <Animated.FlatList
-//             data={orders}
+//             data={displayedOrders}
 //             keyExtractor={(item) => item?.node?.id}
 //             contentContainerStyle={[
 //               styles.flatListContent,
-//               { paddingTop: totalHeaderHeight }, // ← exact measured value
+//               { paddingTop: totalHeaderHeight },
 //             ]}
 //             showsVerticalScrollIndicator={false}
 //             renderItem={renderOrderItem}
@@ -954,8 +1260,6 @@
 //             }
 //           />
 //         )}
-
-//         {loading && <LoadingSkeleton theme={theme} />}
 //       </View>
 
 //       <FAB
@@ -973,646 +1277,179 @@
 //         warehouses={warehouseData?.warehouses?.edges || []}
 //         loading={warehouseLoading}
 //       />
+
+//       <Modal
+//         visible={showFilterModal}
+//         transparent={true}
+//         animationType="fade"
+//         onRequestClose={() => setShowFilterModal(false)}
+//       >
+//         <View style={styles.modalOverlay}>
+//           <View style={styles.modalContent}>
+//             <Text style={styles.modalTitle}>Filter By Date</Text>
+
+//             <TouchableOpacity
+//               style={styles.modalItem}
+//               onPress={() => {
+//                 setDateFilterType("deliveryDate");
+//                 setShowFilterModal(false);
+//               }}
+//             >
+//               <Text style={styles.modalText}>Delivery Date</Text>
+//               {dateFilterType === "deliveryDate" && (
+//                 <Ionicons
+//                   name="checkmark"
+//                   size={20}
+//                   color={theme.textSecondary}
+//                 />
+//               )}
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.modalItem}
+//               onPress={() => {
+//                 setDateFilterType("created");
+//                 setShowFilterModal(false);
+//               }}
+//             >
+//               <Text style={styles.modalText}>Created Date</Text>
+//               {dateFilterType === "created" && (
+//                 <Ionicons
+//                   name="checkmark"
+//                   size={20}
+//                   color={theme.textSecondary}
+//                 />
+//               )}
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.closeBtn}
+//               onPress={() => setShowFilterModal(false)}
+//             >
+//               <Text style={{ color: colors.CANCELED }}>Cancel</Text>
+//             </TouchableOpacity>
+//           </View>
+//         </View>
+//       </Modal>
+
+//       <Modal
+//         visible={confirmOrderModalVisible}
+//         transparent={true}
+//         animationType="fade"
+//         onRequestClose={() => setConfirmOrderModalVisible(false)}
+//       >
+//         <View style={styles.modalOverlay}>
+//           <View style={styles.modalContent}>
+//             <Text style={styles.modalTitle}>Confirm Order</Text>
+
+//             <Text
+//               style={{
+//                 fontSize: 16,
+//                 marginBottom: 24,
+//                 color: theme.text,
+//                 textAlign: "center",
+//               }}
+//             >
+//               Once confirmed, you will not be able to modify product quantities
+//               or remove items from this order.{" "}
+//             </Text>
+
+//             <View
+//               style={{
+//                 flexDirection: "row",
+//                 justifyContent: "space-between",
+//                 paddingHorizontal: 20,
+//               }}
+//             >
+//               <TouchableOpacity
+//                 style={{ padding: 10 }}
+//                 onPress={() => setConfirmOrderModalVisible(false)}
+//               >
+//                 <Text
+//                   style={{
+//                     color: theme.secondary,
+//                     fontWeight: "600",
+//                     fontSize: 16,
+//                   }}
+//                 >
+//                   No, Cancel
+//                 </Text>
+//               </TouchableOpacity>
+
+//               <TouchableOpacity
+//                 style={{ padding: 10 }}
+//                 onPress={() => {
+//                   setConfirmOrderModalVisible(false);
+//                   handleConfirmOrder(confirmTargetOrderId);
+//                 }}
+//               >
+//                 <Text
+//                   style={{
+//                     color: theme.deliveryDate || "#4ade80",
+//                     fontWeight: "600",
+//                     fontSize: 16,
+//                   }}
+//                 >
+//                   Yes, Confirm
+//                 </Text>
+//               </TouchableOpacity>
+//             </View>
+//           </View>
+//         </View>
+//       </Modal>
+
+//       <Modal
+//         visible={showChannelModal}
+//         transparent={true}
+//         animationType="fade"
+//         onRequestClose={() => setShowChannelModal(false)}
+//       >
+//         <View style={styles.modalOverlay}>
+//           <View style={styles.modalContent}>
+//             <Text style={styles.modalTitle}>Select Channel</Text>
+
+//             {channelsLoading ? (
+//               <ActivityIndicator size="large" color={theme.textSecondary} />
+//             ) : (
+//               <FlatList
+//                 data={channelsData?.publicChannels || []}
+//                 keyExtractor={(item) => item.id}
+//                 renderItem={({ item }) => (
+//                   <TouchableOpacity
+//                     style={styles.modalItem}
+//                     onPress={() => handleChannelSelect(item.id)}
+//                   >
+//                     <Text style={styles.modalText}>{item.name}</Text>
+//                     <Ionicons
+//                       name="chevron-forward"
+//                       size={20}
+//                       color={theme.secondary}
+//                     />
+//                   </TouchableOpacity>
+//                 )}
+//                 ListEmptyComponent={
+//                   <Text
+//                     style={{
+//                       textAlign: "center",
+//                       color: theme.secondary,
+//                       marginVertical: 20,
+//                     }}
+//                   >
+//                     No channels available.
+//                   </Text>
+//                 }
+//               />
+//             )}
+
+//             <TouchableOpacity
+//               style={styles.closeBtn}
+//               onPress={() => setShowChannelModal(false)}
+//             >
+//               <Text style={{ color: colors.CANCELED }}>Cancel</Text>
+//             </TouchableOpacity>
+//           </View>
+//         </View>
+//       </Modal>
 //     </ScreenLayout>
 //   );
 // }
-
-
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  Platform,
-  PermissionsAndroid,
-} from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { useContext } from "react";
-import { AuthContext } from "../../../constant/AuthProvider";
-import { toast } from "sonner-native";
-import {
-  SpecificDateData,
-  SpcificDateRangeData,
-  UpdatePurchasePrice,
-  GenerateSpcificDatePdf,
-} from "../../../axiosServices/services";
-import { colors } from "../../../constant/Colors";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../../../constant/ThemeContext";
-import RNFetchBlob from "react-native-blob-util";
-
-const useStyle = (theme) => {
-  return useMemo(() => {
-    return StyleSheet.create({
-      container: {
-        flex: 1,
-        backgroundColor: theme.background,
-        paddingHorizontal: 16,
-      },
-      header: {
-        fontWeight: "bold",
-        fontSize: 16,
-        marginBottom: 10,
-        color: theme.heading,
-        marginTop: 10,
-      },
-      dateInput: {
-        flex: 1,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: theme.border,
-        borderRadius: 8,
-        marginBottom: 10,
-        backgroundColor: theme.primary,
-        justifyContent: "center",
-      },
-      datePickerStyle: {
-        color: theme.text,
-        fontWeight: "500",
-      },
-      dateSection: { marginBottom: 25 },
-      dateHeader: {
-        fontSize: 17,
-        fontWeight: "bold",
-        marginBottom: 6,
-        color: theme.heading,
-      },
-      slotHeader: {
-        fontSize: 14,
-        fontWeight: "600",
-        marginBottom: 10,
-        color: theme.secondary,
-      },
-      card: {
-        borderWidth: 1,
-        borderColor: theme.border,
-        backgroundColor: theme.primary,
-        borderRadius: 10,
-        padding: 12,
-        marginBottom: 12,
-      },
-      title: {
-        fontWeight: "bold",
-        fontSize: 16,
-        color: theme.heading,
-        marginBottom: 4,
-      },
-      subText: { fontSize: 13, color: theme.text, marginBottom: 2 },
-
-      // Inputs Section
-      inputsContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginTop: 10,
-        gap: 12,
-      },
-      inputWrapper: {
-        flex: 1,
-      },
-      label: {
-        marginBottom: 6,
-        fontSize: 12,
-        color: theme.secondary,
-        fontWeight: "500",
-      },
-      inputRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: theme.border,
-        borderRadius: 6,
-        paddingHorizontal: 10,
-        height: 40,
-        backgroundColor: theme.background,
-      },
-      dollar: { marginRight: 4, color: theme.text, fontSize: 14 },
-      input: {
-        flex: 1,
-        paddingVertical: 0, // Fix alignment on Android
-        fontSize: 14,
-        color: theme.text,
-        height: "100%",
-      },
-
-      // Buttons
-      updateBtn: {
-        backgroundColor: theme.textSecondary,
-        paddingVertical: 10,
-        borderRadius: 8,
-        marginTop: 16,
-        alignItems: "center",
-        justifyContent: "center",
-      },
-      updateBtnText: {
-        color: theme.background, // Inverted text color
-        fontWeight: "600",
-      },
-      downloadBtn: {
-        backgroundColor: theme.textSecondary,
-        padding: 16,
-        borderRadius: 10,
-        alignItems: "center",
-        marginVertical: 16,
-      },
-      applyBtn: {
-        backgroundColor: theme.textSecondary,
-        padding: 14,
-        borderRadius: 10,
-        marginVertical: 15,
-        alignItems: "center",
-      },
-      btnText: {
-        color: theme.background,
-        fontWeight: "600",
-        fontSize: 15,
-      },
-      disabledBtn: {
-        backgroundColor: theme.border,
-        opacity: 0.7,
-      },
-      emptyContainer: {
-        padding: 40,
-        alignItems: "center",
-      },
-      emptyText: {
-        fontSize: 16,
-        color: theme.secondary,
-      },
-      row: {
-        flexDirection: "row",
-        gap: 10,
-      },
-    });
-  }, [theme]);
-};
-
-const ProductPriceUpdateScreen = () => {
-  const { theme } = useTheme();
-  const styles = useStyle(theme);
-  const { token } = useContext(AuthContext);
-
-  const [selectProductId, setSelectProductId] = useState(null);
-  const [showPicker, setShowPicker] = useState({ visible: false, field: null });
-  const [specificDate, setSpecificDate] = useState(null);
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [filteredData, setFilteredData] = useState([]);
-  const [priceMap, setPriceMap] = useState({});
-  const [sellingPrice, setSellingPrice] = useState({});
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-
-  const [loadingStates, setLoadingStates] = useState({
-    specific: false,
-    dateRange: false,
-    updatePrice: false,
-  });
-
-  const openDatePicker = useCallback((field) => {
-    setShowPicker({ visible: true, field });
-  }, []);
-
-  useEffect(() => {
-    if (filteredData.length > 0) {
-      const initialPriceMap = {};
-      const intialSellingPrice = {};
-
-      filteredData.forEach((item) => {
-        // Find the key that is NOT 'delivery_date' (e.g., 'Morning Slot')
-        const slotKey = Object.keys(item).find(
-          (key) => key !== "delivery_date",
-        );
-        if (slotKey) {
-          const products = item[slotKey] || [];
-          products.forEach((product) => {
-            initialPriceMap[product.id] =
-              product.purchase_price?.toString() || "";
-            intialSellingPrice[product.id] =
-              product.selling_price?.toString() || "";
-          });
-        }
-      });
-
-      setPriceMap(initialPriceMap);
-      setSellingPrice(intialSellingPrice);
-    }
-  }, [filteredData]);
-
-  const handlePriceChange = useCallback((productId, newPrice, type) => {
-    if (type === "purchase") {
-      setPriceMap((prev) => ({ ...prev, [productId]: newPrice }));
-    } else {
-      setSellingPrice((prev) => ({ ...prev, [productId]: newPrice }));
-    }
-  }, []);
-
-  const formatDate = useCallback((date) => {
-    return date?.toLocaleDateString("en-CA");
-  }, []);
-
-  const onChangeDate = useCallback(
-    (event, selectedDate) => {
-      // Must check event type for Android dismissal
-      if (event.type === "dismissed") {
-        setShowPicker({ visible: false, field: null });
-        return;
-      }
-
-      const currentDate = selectedDate || new Date();
-
-      if (showPicker.field === "specific") {
-        setSpecificDate(currentDate);
-        setStartDate(null);
-        setEndDate(null);
-      } else if (showPicker.field === "start") {
-        setStartDate(currentDate);
-        setSpecificDate(null);
-      } else if (showPicker.field === "end") {
-        setEndDate(currentDate);
-        setSpecificDate(null);
-      }
-
-      setShowPicker({ visible: false, field: null });
-    },
-    [showPicker.field],
-  );
-
-  const updatePrice = useCallback(
-    async (productId) => {
-      // Validate inputs
-      if (!priceMap[productId]) {
-        toast.warning("Please enter a purchase price");
-        return;
-      }
-
-      setSelectProductId(productId);
-      setLoadingStates((prev) => ({ ...prev, updatePrice: true }));
-
-      try {
-        const pPrice = parseFloat(priceMap[productId]) || 0;
-        const sPrice = parseFloat(sellingPrice[productId]) || 0;
-
-        await UpdatePurchasePrice(productId, pPrice, sPrice);
-
-        // Optimistic UI Update
-        setFilteredData((prevData) =>
-          prevData.map((item) => {
-            const slotKey = Object.keys(item).find(
-              (key) => key !== "delivery_date",
-            );
-            if (!slotKey) return item;
-
-            const products = item[slotKey];
-            const hasProduct = products.some((p) => p.id === productId);
-
-            if (!hasProduct) return item;
-
-            return {
-              ...item,
-              [slotKey]: products.map((product) =>
-                product.id === productId
-                  ? {
-                      ...product,
-                      purchase_price: pPrice,
-                      selling_price: sPrice,
-                    }
-                  : product,
-              ),
-            };
-          }),
-        );
-
-        toast.success("Price updated successfully");
-      } catch (err) {
-        toast.error("Failed to update price");
-        console.error(err);
-      } finally {
-        setLoadingStates((prev) => ({ ...prev, updatePrice: false }));
-        setSelectProductId(null);
-      }
-    },
-    [priceMap, sellingPrice],
-  );
-
-  const applyDateFilter = useCallback(async () => {
-    if (startDate && endDate) {
-      setLoadingStates((prev) => ({ ...prev, dateRange: true }));
-      try {
-        const startStr = formatDate(startDate);
-        const endStr = formatDate(endDate);
-        const response = await SpcificDateRangeData(startStr, endStr, token);
-        setFilteredData(response);
-      } catch (err) {
-        setFilteredData([]);
-        toast.error("No data found or error occurred");
-      } finally {
-        setLoadingStates((prev) => ({ ...prev, dateRange: false }));
-      }
-    } else if (specificDate) {
-      setLoadingStates((prev) => ({ ...prev, specific: true }));
-      try {
-        const dateStr = formatDate(specificDate);
-        const response = await SpecificDateData(dateStr, token);
-        setFilteredData(response);
-      } catch (err) {
-        setFilteredData([]);
-        toast.error("No data found or error occurred");
-      } finally {
-        setLoadingStates((prev) => ({ ...prev, specific: false }));
-      }
-    } else {
-      toast.warning("Please select a date first");
-    }
-  }, [startDate, endDate, specificDate, formatDate, token]);
-
-  const handlePdfActions = useCallback(async () => {
-    setIsGeneratingPdf(true);
-    try {
-      if (!specificDate) {
-        toast.warning("Please select a specific date for PDF");
-        return;
-      }
-
-      // 1. Request Permission (Required for Android 9 and below, good practice for all)
-      if (Platform.OS === "android") {
-        try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          );
-          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-            console.log("Permission denied");
-          }
-        } catch (err) {
-          console.warn(err);
-        }
-      }
-
-      const dateString = formatDate(specificDate);
-      const { dirs } = RNFetchBlob.fs;
-
-      // 2. Define Path
-      // We use DownloadDir so the user can find it easily
-      const fileName = `purchase_${dateString}.pdf`;
-      const filePath =
-        Platform.OS === "ios"
-          ? `${dirs.DocumentDir}/${fileName}`
-          : `${dirs.DownloadDir}/${fileName}`;
-
-      // 3. API URL
-      const BASE_URL = "https://api.kisanbasket.com/api/purchases";
-      const FULL_URL = `${BASE_URL}/specific-date-pdf`;
-
-      // 4. CONFIG: DISABLE 'addAndroidDownloads'
-      // We remove the Android Download Manager config so RNFetchBlob uses its own
-      // internal engine. This guarantees headers (Auth token) are sent correctly.
-      const configOptions = {
-        fileCache: true,
-        path: filePath,
-      };
-
-      console.log("Starting internal download...");
-
-      // 5. FETCH
-      const res = await RNFetchBlob.config(configOptions).fetch(
-        "GET",
-        `${FULL_URL}?date=${dateString}`,
-        {
-          // Headers are now guaranteed to work because we are using the internal engine
-          Authorization: `Bearer ${token}`,
-          "Cache-Control": "no-store",
-        },
-      );
-
-      const info = res.info();
-      if (info && info.status !== 200) {
-        toast.error(`Server Error: ${info.status}`);
-        setIsGeneratingPdf(false);
-        return;
-      }
-
-      console.log("File saved to:", res.path());
-
-      // 7. OPEN THE FILE
-      const finalPath = res.path();
-
-      if (Platform.OS === "android") {
-        // Open the PDF viewer
-        RNFetchBlob.android.actionViewIntent(finalPath, "application/pdf");
-
-        // Optional: Scan the file so it shows up in the 'Downloads' app immediately
-        // (This might fail on some Android versions, so we catch it silently)
-        try {
-          await RNFetchBlob.fs.scanFile([
-            { path: finalPath, mime: "application/pdf" },
-          ]);
-        } catch (e) {}
-      } else {
-        RNFetchBlob.ios.previewDocument(finalPath);
-      }
-
-      toast.success("PDF Downloaded");
-    } catch (error) {
-      console.error("PDF Download Error:", error);
-      toast.error("Failed to download PDF");
-    } finally {
-      setIsGeneratingPdf(false);
-    }
-  }, [specificDate, token, formatDate]);
-
-  const renderProductItem = useCallback(
-    (product) => {
-      const isUpdating =
-        selectProductId === product.id && loadingStates.updatePrice;
-
-      return (
-        <View key={product.id} style={styles.card}>
-          <Text style={styles.title}>{product.product_name}</Text>
-          <Text style={styles.subText}>Location: {product.location}</Text>
-          <Text style={styles.subText}>Variant: {product.variant}</Text>
-          <Text style={styles.subText}>Qty: {product.quantity}</Text>
-
-          <View style={styles.inputsContainer}>
-            {/* Purchase Price Input */}
-            <View style={styles.inputWrapper}>
-              <Text style={styles.label}>Purchase Price</Text>
-              <View style={styles.inputRow}>
-                <Text style={styles.dollar}>₹</Text>
-                <TextInput
-                  style={styles.input}
-                  value={priceMap[product.id]}
-                  keyboardType="numeric"
-                  onChangeText={(text) =>
-                    handlePriceChange(product.id, text, "purchase")
-                  }
-                  placeholder="0"
-                  placeholderTextColor={theme.secondary}
-                />
-              </View>
-            </View>
-
-            {/* Selling Price Input */}
-            <View style={styles.inputWrapper}>
-              <Text style={styles.label}>Selling Price</Text>
-              <View style={styles.inputRow}>
-                <Text style={styles.dollar}>₹</Text>
-                <TextInput
-                  style={styles.input}
-                  value={sellingPrice[product.id]}
-                  keyboardType="numeric"
-                  onChangeText={(text) =>
-                    handlePriceChange(product.id, text, "selling")
-                  }
-                  placeholder="0"
-                  placeholderTextColor={theme.secondary}
-                />
-              </View>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.updateBtn, isUpdating && styles.disabledBtn]}
-            onPress={() => updatePrice(product.id)}
-            disabled={isUpdating}
-          >
-            {isUpdating ? (
-              <ActivityIndicator size="small" color={theme.heading} />
-            ) : (
-              <Text style={styles.updateBtnText}>Update</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      );
-    },
-    [
-      priceMap,
-      sellingPrice,
-      selectProductId,
-      loadingStates.updatePrice,
-      handlePriceChange,
-      updatePrice,
-      styles,
-      theme,
-    ],
-  );
-
-  const renderDateSection = useCallback(
-    (item, index) => {
-      const deliveryDate = item?.delivery_date;
-      const slotKey = Object.keys(item).find((key) => key !== "delivery_date");
-      const products = item[slotKey] || [];
-
-      return (
-        <View key={`${deliveryDate}-${index}`} style={styles.dateSection}>
-          <Text style={styles.dateHeader}>{deliveryDate}</Text>
-          <Text style={styles.slotHeader}>
-            {slotKey || "No Slot Information"}
-          </Text>
-          {products.map((product) => renderProductItem(product))}
-        </View>
-      );
-    },
-    [renderProductItem, styles],
-  );
-
-  // Helper for DatePicker value to ensure it's always a valid Date object
-  const getPickerDate = () => {
-    if (showPicker.field === "specific") return specificDate || new Date();
-    if (showPicker.field === "start") return startDate || new Date();
-    if (showPicker.field === "end") return endDate || new Date();
-    return new Date();
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        <Text style={styles.header}>Select Specific Date</Text>
-        <TouchableOpacity
-          style={styles.dateInput}
-          onPress={() => openDatePicker("specific")}
-        >
-          <Text style={styles.datePickerStyle}>
-            {specificDate ? formatDate(specificDate) : "Tap to select a date"}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.header}>Select Date Range</Text>
-        <View style={styles.row}>
-          <TouchableOpacity
-            style={styles.dateInput}
-            onPress={() => openDatePicker("start")}
-          >
-            <Text style={styles.datePickerStyle}>
-              {startDate ? formatDate(startDate) : "Start Date"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.dateInput}
-            onPress={() => openDatePicker("end")}
-          >
-            <Text style={styles.datePickerStyle}>
-              {endDate ? formatDate(endDate) : "End Date"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={styles.applyBtn}
-          onPress={applyDateFilter}
-          disabled={loadingStates.specific || loadingStates.dateRange}
-        >
-          {loadingStates.specific || loadingStates.dateRange ? (
-            <ActivityIndicator color={theme.background} />
-          ) : (
-            <Text style={styles.btnText}>Apply Filters</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* List Data */}
-        {filteredData.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No data available for selected filters
-            </Text>
-          </View>
-        ) : (
-          filteredData.map(renderDateSection)
-        )}
-      </ScrollView>
-
-      {/* Floating Action / Bottom Button for PDF */}
-      <View style={{ position: "absolute", bottom: 20, left: 16, right: 16 }}>
-        <TouchableOpacity
-          style={[styles.downloadBtn, isGeneratingPdf && styles.disabledBtn]}
-          disabled={isGeneratingPdf}
-          onPress={handlePdfActions}
-        >
-          {isGeneratingPdf ? (
-            <ActivityIndicator color={theme.background} />
-          ) : (
-            <Text style={styles.btnText}>Download PDF</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Global Date Picker */}
-      {showPicker.visible && (
-        <DateTimePicker
-          value={getPickerDate()}
-          mode="date"
-          display="default"
-          onChange={onChangeDate}
-          minimumDate={showPicker.field === "end" ? startDate : undefined}
-          maximumDate={showPicker.field === "start" ? endDate : undefined}
-        />
-      )}
-    </SafeAreaView>
-  );
-};
-
-export default ProductPriceUpdateScreen;

@@ -22,6 +22,8 @@ import { Modal, Portal, PaperProvider } from "react-native-paper";
 import { toast } from "sonner-native";
 import ShimmerPlaceholder from "../../../components/custom/shimmerLoaderPlaceholder";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CHANNEL, URL } from "@env";
+import { useAiOrderPromptMutation } from "../../../services/deliveryApi";
 
 // Components
 import CustomerList from "../../../components/custom/customerList";
@@ -34,6 +36,11 @@ import OrderTable from "./component/OrderTable";
 import {
   PRODUCT_LIST_QUERY,
   ORDER_DETAILS_WITH_METADATA,
+  CHECKOUT_SHIPPING_METHODS_QUERY,
+  GET_CHANNELS,
+  SEARCH_CUSTOMER_QUERY,
+  CUSTOMER_ADDRESSES,
+  GET_SHIPPING_METHODS,
 } from "../../../graphql/Query";
 import {
   CANCEL_ORDER_QUERY,
@@ -41,6 +48,9 @@ import {
   ORDER_DRAFT_FINALIZE,
   ORDER_DRAFT_CANCEL,
   ORDER_LINE_UPDATE,
+  SHIPPING_METHOD_UPDATE,
+  ORDER_LINE_ADD,
+  ORDER_DRAFT_UPDATE,
 } from "../../../graphql/Mutation";
 
 // Services & Context
@@ -74,11 +84,15 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [productList, setProductList] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
+  const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [aiPromptText, setAiPromptText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   const [confirmOrderModalVisible, setConfirmOrderModalVisible] =
     useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
+  const [AIOrderPrompt] = useAiOrderPromptMutation();
   // Date management
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -88,6 +102,12 @@ export default function OrderSummaryScreen({ navigation, route }) {
   });
 
   // GraphQL operations
+  const [searchCustomers] = useLazyQuery(SEARCH_CUSTOMER_QUERY);
+  const [singleCustomerAddresses] = useLazyQuery(CUSTOMER_ADDRESSES);
+  const [getShippingMethods] = useLazyQuery(GET_SHIPPING_METHODS);
+  const [updateOrderDraft] = useMutation(ORDER_DRAFT_UPDATE);
+  const [orderLineAddMutation] = useMutation(ORDER_LINE_ADD);
+  const [updateShippingMethod] = useMutation(SHIPPING_METHOD_UPDATE);
   const [updateOrderProduct] = useMutation(ORDER_LINE_UPDATE);
   const [orderDraftFinalize, { loading: isFinalizing }] =
     useMutation(ORDER_DRAFT_FINALIZE);
@@ -100,8 +120,16 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const [orderDraftCancel, { loading: isCancelling }] =
     useMutation(ORDER_DRAFT_CANCEL);
 
+  //
+  const { data: shippingMethodData } = useQuery(
+    CHECKOUT_SHIPPING_METHODS_QUERY,
+    {
+      variables: { channelSlug: CHANNEL },
+      fetchPolicy: "cache-and-network",
+    },
+  );
   const { data: initialData, error } = useQuery(PRODUCT_LIST_QUERY, {
-    variables: { first: 50, channel: "pune" },
+    variables: { first: 50, channel: CHANNEL },
     onCompleted: (data) => setProductList(data?.products?.edges || []),
   });
 
@@ -113,6 +141,9 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   const formattedDate = selectedDate?.toLocaleDateString("en-CA");
   const isLoading = searchLoading || isCancelling;
+
+  // A common boolean to lock UI elements
+  const isUIBusy = localLoading || aiLoading || fetchMetaDataLoading;
 
   const orderLines = useMemo(
     () =>
@@ -126,11 +157,9 @@ export default function OrderSummaryScreen({ navigation, route }) {
       })) || [],
     [orderWithMetaData],
   );
-  console.log("Order lines with metadata:", orderWithMetaData);
-  console.log("Transformed order lines for table:", orderLines);
 
   const updateQuantity = async (lineId, newQuantity) => {
-    if (!lineId || newQuantity < 1) return;
+    if (!lineId || newQuantity < 1 || isUIBusy) return;
 
     try {
       setLocalLoading(true);
@@ -161,7 +190,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
         searchProducts({
           variables: {
             first: 20,
-            channel: "pune",
+            channel: CHANNEL,
             filter: { search: query },
           },
         });
@@ -194,11 +223,12 @@ export default function OrderSummaryScreen({ navigation, route }) {
   );
 
   const deleteProduct = async (id) => {
-    if (!id) {
+    if (!id || isUIBusy) {
       toast.warning("Product ID not found");
       return;
     }
     try {
+      setLocalLoading(true);
       const response = await deleteOrderProduct({ variables: { id } });
       const error = response?.data?.orderLineDelete?.errors || [];
       if (error.length > 0) {
@@ -209,6 +239,8 @@ export default function OrderSummaryScreen({ navigation, route }) {
       }
     } catch (err) {
       toast.error("Order delete failed");
+    } finally {
+      setLocalLoading(false);
     }
   };
 
@@ -240,37 +272,82 @@ export default function OrderSummaryScreen({ navigation, route }) {
   );
 
   const ConfirmOrder = useCallback(async () => {
+    if (isUIBusy) return;
     try {
+      const availableMethods =
+        shippingMethodData?.channel?.availableShippingMethodsPerCountry?.[0]
+          ?.shippingMethods;
+      const shippingMethodId = availableMethods?.[0]?.id ?? null;
+
+      if (!shippingMethodId) {
+        toast.error("No shipping methods available for this region.");
+        return;
+      }
+
       await toast.promise(
-        orderDraftFinalize({
-          variables: {
-            id: order_id,
-            date: formattedDate,
-            slot: selectedSlot,
-          },
-        }),
+        (async () => {
+          const shippingResponse = await updateShippingMethod({
+            variables: {
+              id: order_id,
+              input: { shippingMethod: shippingMethodId },
+            },
+          });
+
+          const shippingErrors =
+            shippingResponse?.data?.orderUpdateShipping?.errors ?? [];
+          if (shippingErrors.length > 0) {
+            throw new Error(
+              shippingErrors[0].message || "Failed to attach shipping method.",
+            );
+          }
+
+          const finalizeResponse = await orderDraftFinalize({
+            variables: {
+              id: order_id,
+              date: formattedDate,
+              slot: selectedSlot,
+            },
+          });
+
+          const finalErrors =
+            finalizeResponse?.data?.draftOrderComplete?.errors ?? [];
+          if (finalErrors.length > 0) {
+            throw new Error(
+              finalErrors[0].message || "Failed to finalize order.",
+            );
+          }
+
+          return finalizeResponse;
+        })(),
         {
-          loading: "Finalizing order...",
-          success: (response) => {
-            const errors = response?.data?.draftOrderComplete?.errors || [];
-            if (errors.length > 0) {
-              throw new Error(errors.map((err) => err.message).join("\n"));
-            }
+          loading: "Processing & Confirming order...",
+          success: () => {
             setShowSuccess(true);
             animationRef.current?.play();
-            setGlobalRefresh(true);
             setTimeout(() => {
+              setGlobalRefresh(true);
               navigation.goBack();
             }, 2000);
             return "Order confirmed successfully!";
           },
-          error: (err) => err?.message || "Failed to confirm order.",
+          error: (err) => err?.message || "Failed to process order.",
         },
       );
     } catch (err) {
-      toast.error("Unexpected Error");
+      toast.error("Unexpected Error Occurred");
+      console.error("Order Confirmation Error:", err);
     }
-  }, [token, selectedDate, formattedDate, selectedSlot]);
+  }, [
+    token,
+    selectedDate,
+    formattedDate,
+    selectedSlot,
+    order_id,
+    shippingMethodData,
+    updateShippingMethod,
+    orderDraftFinalize,
+    isUIBusy,
+  ]);
 
   const cancelOrder = useCallback(async () => {
     try {
@@ -284,7 +361,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
         toast.error("Order cancel failed");
       }
     } catch (err) {
-      console.log("err", err);
       toast.error("Failed to cancel order");
     } finally {
       setLocalLoading(false);
@@ -329,6 +405,151 @@ export default function OrderSummaryScreen({ navigation, route }) {
     setIsVisible(false);
     setCustomerVisible(false);
   }, []);
+
+  const handleAIPromptSubmit = async () => {
+    if (!aiPromptText.trim()) {
+      toast.warning("Please enter an order prompt");
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+
+      const data = await AIOrderPrompt({
+        body: { text: aiPromptText },
+      }).unwrap();
+
+      if (data.status === "ok" && data.orders?.length > 0) {
+        const parsedOrder = data.orders[0];
+
+        if (parsedOrder.unmatched_items?.length > 0) {
+          const missingItems = parsedOrder.unmatched_items
+            .map((item) => item.product_name)
+            .join(", ");
+          toast.warning(`Items not found in catalog: ${missingItems}`);
+        }
+
+        const linesToAdd = parsedOrder.order_lines.map((line) => ({
+          variantId: line.variantId,
+          quantity: line.quantity,
+        }));
+
+        if (linesToAdd.length > 0) {
+          const { data: addData } = await orderLineAddMutation({
+            variables: { id: order_id, input: linesToAdd },
+          });
+
+          const errors = addData?.orderLinesCreate?.errors || [];
+          if (errors.length > 0) throw new Error(errors[0].message);
+
+          toast.success(`Successfully added ${linesToAdd.length} items!`);
+          await fetchOrderData(true);
+        } else {
+          toast.error("No valid products matched from your prompt.");
+        }
+
+        const parsedCustomer = parsedOrder.customer;
+
+        if (parsedCustomer?.phone) {
+          toast.info("Auto-assigning customer...");
+
+          const phoneQuery = parsedCustomer.phone.replace(/\s+/g, "");
+
+          const { data: customerSearchData } = await searchCustomers({
+            variables: { first: 5, query: phoneQuery, after: null },
+          });
+
+          const foundCustomers = customerSearchData?.search?.edges || [];
+
+          if (foundCustomers.length > 0) {
+            const selectedCustomer = foundCustomers[0].node;
+
+            await updateOrderDraft({
+              variables: { id: order_id, input: { user: selectedCustomer.id } },
+            });
+
+            const { data: customerAddressData } = await singleCustomerAddresses(
+              {
+                variables: { id: selectedCustomer.id },
+              },
+            );
+
+            const customerAddresses =
+              customerAddressData?.user?.addresses || [];
+
+            if (customerAddresses.length > 0) {
+              let addressToUse = customerAddresses[0];
+
+              if (parsedCustomer.address_hint) {
+                const hint = parsedCustomer.address_hint.toLowerCase();
+                const matchedAddress = customerAddresses.find((a) =>
+                  a.streetAddress1?.toLowerCase().includes(hint),
+                );
+                if (matchedAddress) {
+                  addressToUse = matchedAddress;
+                }
+              }
+
+              const payload = {
+                firstName: addressToUse.firstName,
+                lastName: addressToUse.lastName,
+                phone: addressToUse.phone,
+                streetAddress1: addressToUse.streetAddress1,
+                city: addressToUse.city,
+                postalCode: addressToUse.postalCode,
+                country: addressToUse.country.code,
+                countryArea: "Maharashtra",
+              };
+
+              await updateOrderDraft({
+                variables: {
+                  id: order_id,
+                  input: { billingAddress: payload, shippingAddress: payload },
+                },
+              });
+
+              const { data: sData } = await getShippingMethods({
+                variables: { id: order_id },
+              });
+
+              const sMethodId = sData?.order?.shippingMethods?.[0]?.id;
+              if (sMethodId) {
+                await updateShippingMethod({
+                  variables: {
+                    id: order_id,
+                    input: { shippingMethod: sMethodId },
+                  },
+                });
+              }
+            }
+
+            setSelectedCustomerData(selectedCustomer);
+            toast.success(
+              `Customer ${selectedCustomer.firstName} assigned automatically`,
+            );
+          } else {
+            toast.warning(
+              `No customer profile found for ${parsedCustomer.phone}`,
+            );
+          }
+        }
+
+        setAiPromptText("");
+        setAiModalVisible(false);
+      } else {
+        toast.error("Failed to parse order from text.");
+      }
+    } catch (error) {
+      console.error("AI Prompt Error:", error);
+      const errorMessage =
+        error?.data?.message ||
+        error.message ||
+        "Failed to process the AI prompt.";
+      toast.error(errorMessage);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchOrderData();
@@ -400,9 +621,12 @@ export default function OrderSummaryScreen({ navigation, route }) {
             <Text style={styles.statusText}>{orderStatus}</Text>
           </View>
           <TouchableOpacity
-            style={styles.actionButton}
-            // Changed to trigger modal
+            style={[
+              styles.actionButton,
+              (cancelLoading || isUIBusy) && { opacity: 0.5 },
+            ]}
             onPress={() => setCancelModalVisible(true)}
+            disabled={cancelLoading || isUIBusy}
           >
             <Text style={styles.buttonText}>
               {cancelLoading || localLoading ? "Cancelling..." : "Cancel"}
@@ -414,28 +638,49 @@ export default function OrderSummaryScreen({ navigation, route }) {
     return (
       <View style={styles.actionButtonContainer}>
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[
+            styles.actionButton,
+            (isCancelling || isUIBusy) && { opacity: 0.5 },
+          ]}
           onPress={() => setCancelModalVisible(true)}
-          disabled={isCancelling}
+          disabled={isCancelling || isUIBusy}
         >
           <Text style={styles.buttonText}>
             {isCancelling ? "Cancelling..." : "Cancel Order"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[styles.actionButton, isUIBusy && { opacity: 0.5 }]}
           onPress={toggleBottomSheet}
+          disabled={isUIBusy}
         >
           <Text style={styles.buttonText}>Add Product</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, isUIBusy && { opacity: 0.5 }]}
+          onPress={() => setAiModalVisible(true)}
+          disabled={isUIBusy}
+        >
+          <Text style={styles.buttonText}>AI Order Prompt</Text>
+        </TouchableOpacity>
       </View>
     );
-  }, [cancellationOrder, orderStatus, isCancelling]);
+  }, [
+    cancellationOrder,
+    orderStatus,
+    isCancelling,
+    cancelLoading,
+    isUIBusy,
+    localLoading,
+    styles,
+    toggleBottomSheet,
+  ]);
 
   const renderCustomerSelection = useCallback(
     () => (
       <TouchableOpacity
-        style={styles.selectionInput}
+        style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
+        disabled={isUIBusy}
         onPress={() => {
           if (orderWithMetaData.length > 0) {
             setCustomerVisible(true);
@@ -458,13 +703,14 @@ export default function OrderSummaryScreen({ navigation, route }) {
         <Icon name="chevron-down-outline" size={20} color={theme.text} />
       </TouchableOpacity>
     ),
-    [orderWithMetaData.length, selectedCustomerData, theme],
+    [orderWithMetaData.length, selectedCustomerData, theme, isUIBusy, styles],
   );
 
   const renderDateSelection = useCallback(
     () => (
       <TouchableOpacity
-        style={styles.selectionInput}
+        style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
+        disabled={isUIBusy}
         onPress={() => setShowPicker(true)}
       >
         <TextInput
@@ -477,12 +723,16 @@ export default function OrderSummaryScreen({ navigation, route }) {
         <Icon name="chevron-down-outline" size={20} color={theme.text} />
       </TouchableOpacity>
     ),
-    [formattedDate, selectedDate, theme],
+    [formattedDate, selectedDate, theme, isUIBusy, styles],
   );
 
   const renderSlotSelection = useCallback(
     () => (
-      <TouchableOpacity style={styles.selectionInput} onPress={showModal}>
+      <TouchableOpacity
+        style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
+        disabled={isUIBusy}
+        onPress={showModal}
+      >
         <TextInput
           placeholder="Available Slots"
           placeholderTextColor={theme.secondary}
@@ -493,13 +743,13 @@ export default function OrderSummaryScreen({ navigation, route }) {
         <Icon name="chevron-down-outline" size={20} color={theme.text} />
       </TouchableOpacity>
     ),
-    [selectedSlot, selectedDate, theme],
+    [selectedSlot, selectedDate, theme, showModal, isUIBusy, styles],
   );
 
   return (
     <PaperProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-        {localLoading || fetchMetaDataLoading ? (
+        {fetchMetaDataLoading ? (
           <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
             {[...Array(2)].map((_, index) => (
               <View key={index} style={styles.shimmerCard}>
@@ -535,13 +785,18 @@ export default function OrderSummaryScreen({ navigation, route }) {
             )}
             {renderSlotSelection()}
             <TouchableOpacity
-              style={[styles.confirmButton, isFinalizing && { opacity: 0.6 }]}
+              style={[
+                styles.confirmButton,
+                (isFinalizing || isUIBusy) && { opacity: 0.6 },
+              ]}
               onPress={() => setConfirmOrderModalVisible(true)}
-              disabled={isFinalizing}
+              disabled={isFinalizing || isUIBusy}
             >
-              <Text style={styles.confirmButtonText}>
-                {isFinalizing ? "Confirming..." : "Confirm Order"}
-              </Text>
+              {isFinalizing || localLoading ? (
+                <ActivityIndicator color={theme.background} />
+              ) : (
+                <Text style={styles.confirmButtonText}>Confirm Order</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
@@ -695,6 +950,118 @@ export default function OrderSummaryScreen({ navigation, route }) {
               </Text>
             </TouchableOpacity>
           </View>
+        </Modal>
+
+        <Modal
+          visible={aiModalVisible}
+          dismissable={!aiLoading}
+          onDismiss={() => {
+            if (!aiLoading) {
+              setAiModalVisible(false);
+              setAiPromptText("");
+            }
+          }}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "bold",
+              marginBottom: 15,
+              color: theme.text,
+            }}
+          >
+            AI Order Prompt
+          </Text>
+
+          {isUIBusy ? (
+            <View
+              style={{
+                paddingVertical: 40,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ActivityIndicator
+                size="large"
+                color={theme.deliveryDate || "#4ade80"}
+              />
+              <Text
+                style={{
+                  marginTop: 15,
+                  fontSize: 15,
+                  color: theme.text,
+                  textAlign: "center",
+                }}
+              >
+                Processing AI Prompt...{"\n"}Mapping products & assigning
+                customer.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: theme.secondary,
+                  borderRadius: 8,
+                  padding: 12,
+                  color: theme.text,
+                  minHeight: 120,
+                  textAlignVertical: "top",
+                  marginBottom: 20,
+                  backgroundColor: theme.background,
+                }}
+                multiline
+                placeholder="e.g., Bhendi - 500 gm&#10;Tomato - 1.5 kg..."
+                placeholderTextColor={theme.secondary}
+                value={aiPromptText}
+                onChangeText={setAiPromptText}
+                editable={!aiLoading}
+              />
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "flex-end",
+                  gap: 20,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => {
+                    setAiModalVisible(false);
+                    setAiPromptText("");
+                  }}
+                  disabled={aiLoading}
+                >
+                  <Text
+                    style={{
+                      color: theme.secondary,
+                      fontWeight: "600",
+                      fontSize: 16,
+                    }}
+                  >
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleAIPromptSubmit}
+                  disabled={aiLoading}
+                >
+                  <Text
+                    style={{
+                      color: theme.textSecondary || "#4ade80",
+                      fontWeight: "600",
+                      fontSize: 16,
+                    }}
+                  >
+                    Submit
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </Modal>
       </Portal>
     </PaperProvider>

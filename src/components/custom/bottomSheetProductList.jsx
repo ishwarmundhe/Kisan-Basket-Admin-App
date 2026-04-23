@@ -389,7 +389,7 @@ const BottomSheetProductListContent = ({
             disabled={selectedVariants.length === 0 || isProcessing}
           >
             <Text style={styles.confirmButtonText}>
-              {isProcessing ? "Adding..." : "Confirm"}
+              {isProcessing ? "Adding..." : "Add To Cart"}
             </Text>
           </TouchableOpacity>
         </View>

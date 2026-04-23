@@ -4,23 +4,18 @@ import { API_BASE_URL } from "@env";
 import { bareClient } from "../client/client";
 import { REFRESH_TOKEN_MUTATION } from "../graphql/Mutation";
 import { toast } from "sonner-native";
+import { callLogout, updateContextToken } from "../constant/AuthService";
 
-// Token refresh state control
 let isRefreshing = false;
 let failedRequestsQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedRequestsQueue.forEach((promise) => {
-    if (error) {
-      promise.reject(error);
-    } else {
-      promise.resolve(token);
-    }
-  });
+  failedRequestsQueue.forEach((promise) =>
+    error ? promise.reject(error) : promise.resolve(token),
+  );
   failedRequestsQueue = [];
 };
 
-// Axios instance
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -29,7 +24,6 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
     const token = await localStore.getToken();
@@ -38,10 +32,9 @@ axiosInstance.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -67,6 +60,7 @@ axiosInstance.interceptors.response.use(
 
     try {
       const refreshToken = await localStore.getRefreshToken();
+
       if (!refreshToken) throw new Error("No refresh token available");
 
       const result = await bareClient.mutate({
@@ -74,27 +68,39 @@ axiosInstance.interceptors.response.use(
         variables: { refreshToken },
       });
 
-      const newToken = result?.data?.tokenRefresh?.token;
-      const newRefreshToken = result?.data?.tokenRefresh?.refreshToken;
+      const refreshData = result?.data?.tokenRefresh;
 
-      if (!newToken) throw new Error("Token refresh failed");
+      if (refreshData?.errors?.length > 0) {
+        throw new Error(
+          refreshData.errors[0].message || "Token refresh failed",
+        );
+      }
 
-      await Promise.all([
-        localStore.setToken(newToken),
-        newRefreshToken && localStore.setRefreshToken(newRefreshToken),
-      ]);
+      const newToken = refreshData?.token;
+      const newRefreshToken = refreshData?.refreshToken;
+
+      if (!newToken) throw new Error("Token refresh returned no token");
+
+      await localStore.setToken(newToken);
+      if (newRefreshToken) {
+        await localStore.setRefreshToken(newRefreshToken);
+      }
+
+      updateContextToken(newToken);
 
       processQueue(null, newToken);
+
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return axiosInstance(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
       toast.error("Session expired. Please log in again.");
+      await callLogout();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
     }
-  }
+  },
 );
 
 export default axiosInstance;

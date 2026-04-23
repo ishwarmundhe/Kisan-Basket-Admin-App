@@ -44,11 +44,17 @@ const useStyle = (theme) => {
           paddingHorizontal: 15,
         },
       }),
-    [theme]
+    [theme],
   );
 };
 
-const ListTable = ({ customerData, loading, orderListError, navigation }) => {
+const ListTable = ({
+  customerData,
+  loading,
+  orderListError,
+  navigation,
+  ...flatListProps
+}) => {
   const { theme } = useTheme();
   const styles = useStyle(theme);
 
@@ -65,7 +71,6 @@ const ListTable = ({ customerData, loading, orderListError, navigation }) => {
     setVisible(false);
   };
 
-  // Loading Skeleton
   if (loading) {
     return (
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -104,8 +109,13 @@ const ListTable = ({ customerData, loading, orderListError, navigation }) => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           data={customerData || []}
-          keyExtractor={(item) => item?.node?.id}
-          contentContainerStyle={{ gap: 10, paddingBottom: 20 }}
+          keyExtractor={(item, index) => item?.node?.id || index.toString()}
+          contentContainerStyle={{
+            gap: 10,
+            paddingBottom: 80,
+            marginHorizontal: 15,
+          }}
+          {...flatListProps}
           renderItem={({ item }) => {
             const user = item?.node;
 
@@ -118,7 +128,6 @@ const ListTable = ({ customerData, loading, orderListError, navigation }) => {
                     alignItems: "center",
                   }}
                 >
-                  {/* LEFT SIDE */}
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[styles.heading, { flexShrink: 1 }]}
@@ -134,7 +143,6 @@ const ListTable = ({ customerData, loading, orderListError, navigation }) => {
                     )}
                   </View>
 
-                  {/* RIGHT ICON */}
                   <TouchableOpacity onPress={() => showDialog(user?.id)}>
                     <Icon
                       name="ellipsis-vertical-outline"
@@ -148,7 +156,6 @@ const ListTable = ({ customerData, loading, orderListError, navigation }) => {
           }}
         />
 
-        {/* CONFIRMATION DIALOG */}
         <Portal>
           <Dialog visible={visible} onDismiss={() => setVisible(false)}>
             <Dialog.Title>Update</Dialog.Title>

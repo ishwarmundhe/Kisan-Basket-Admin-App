@@ -27,15 +27,18 @@ import ScreenLayout from "../ScreenLayout";
 import ShimmerPlaceholder from "../../../components/custom/shimmerLoaderPlaceholder";
 import ErrorMessage from "../../../components/custom/errorMessage";
 import { colors } from "../../../constant/Colors";
-
-// REMOVED the conflicting react-native-paper Modal import
+import dayjs from "dayjs";
+import { CHANNEL } from "@env";
 
 import {
   ORDER_LIST_QUERY,
   MONTH_TOTAL_ORDERS,
   WAREHOUSE_LIST,
   ORDER_FULFILL_DATA,
+  CHECKOUT_SHIPPING_METHODS_QUERY,
+  GET_CHANNELS,
 } from "../../../graphql/Query";
+
 import {
   ORDER_DRAFT_CREATE,
   ORDER_CONFIRM,
@@ -56,11 +59,21 @@ const STATUS_COLORS = {
   DEFAULT: colors.WHITE,
 };
 
+let persistedSelectedDate = new Date();
+
 const useStyle = (theme) =>
   useMemo(
     () =>
       StyleSheet.create({
-        // --- LAYOUT & SPACING ---
+        orderLoadingOverlay: {
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 8,
+          zIndex: 10,
+          elevation: 10,
+        },
         searchCreateContainer: {
           flexDirection: "row",
           gap: 12,
@@ -146,7 +159,7 @@ const useStyle = (theme) =>
         dateRowContainer: {
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
+          gap: 10,
           marginBottom: 16,
         },
         dateInput: {
@@ -155,14 +168,15 @@ const useStyle = (theme) =>
           paddingHorizontal: 12,
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
+          justifyContent: "space-between",
           borderWidth: 1,
           borderColor: theme.border,
           borderRadius: 8,
           backgroundColor: theme.primary,
         },
-        refreshButton: {
-          width: 48,
+
+        iconButton: {
+          width: 38,
           height: 48,
           borderWidth: 1,
           borderColor: theme.border,
@@ -275,12 +289,15 @@ const useStyle = (theme) =>
           marginBottom: 20,
           textAlign: "center",
         },
-        warehouseItem: {
+        modalItem: {
           paddingVertical: 16,
           borderBottomWidth: 1,
           borderBottomColor: theme.border,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
         },
-        warehouseText: {
+        modalText: {
           color: theme.text,
           fontSize: 16,
         },
@@ -292,7 +309,6 @@ const useStyle = (theme) =>
           alignItems: "center",
         },
 
-        // NEW: Full Screen Loader Styles
         fullScreenLoaderText: {
           color: "#FFFFFF",
           marginTop: 12,
@@ -363,10 +379,10 @@ const WarehouseModal = ({
               keyExtractor={(item) => item.node.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.warehouseItem}
+                  style={styles.modalItem}
                   onPress={() => onSelect(item.node.id)}
                 >
-                  <Text style={styles.warehouseText}>{item.node.name}</Text>
+                  <Text style={styles.modalText}>{item.node.name}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -390,6 +406,7 @@ const OrderItem = React.memo(
     onConfirm,
     onFulfill,
     onMarkPaid,
+    loadingActionId,
   }) => {
     const order = item?.node;
     const { theme } = useTheme();
@@ -463,15 +480,21 @@ const OrderItem = React.memo(
         borderColor: theme.border,
         backgroundColor: theme.primary,
       },
+      { overflow: "hidden" },
     ];
 
     const fullName =
       `${order?.billingAddress?.firstName ?? ""} ${order?.billingAddress?.lastName ?? ""}`.trim();
     const addressLine1 = order?.billingAddress?.streetAddress1 ?? "";
     const itemNames = lines.map((l) => l.productName).join(", ");
+    const isActionLoading = loadingActionId === order?.id;
 
     return (
-      <TouchableOpacity onPress={() => onPress(order?.id)}>
+      <TouchableOpacity
+        style={{ position: "relative" }}
+        onPress={() => onPress(order?.id)}
+        disabled={isActionLoading}
+      >
         <Card style={finalCardStyle}>
           <View style={styles.rightActions}>
             {!order?.isPaid &&
@@ -570,27 +593,15 @@ const OrderItem = React.memo(
             )}
           </View>
         </Card>
+        {isActionLoading && (
+          <View style={styles.orderLoadingOverlay}>
+            <ActivityIndicator size="large" color="#ffffff" />
+          </View>
+        )}
       </TouchableOpacity>
     );
   },
 );
-
-const LoadingSkeleton = ({ theme }) => {
-  const styles = useStyle(theme);
-  return (
-    <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-      {[...Array(6)].map((_, index) => (
-        <View key={index} style={styles.shimmerCard}>
-          <ShimmerPlaceholder height={30} width="60%" borderRadius={6} />
-          <ShimmerPlaceholder height={20} width="60%" borderRadius={6} />
-          <View style={{ marginTop: 5 }}>
-            <ShimmerPlaceholder height={16} width="80%" borderRadius={4} />
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-};
 
 export default function ProductSelectionScreen({ navigation }) {
   const { theme } = useTheme();
@@ -598,20 +609,22 @@ export default function ProductSelectionScreen({ navigation }) {
 
   const { globalRefresh, setGlobalRefresh } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(persistedSelectedDate);
   const [showPicker, setShowPicker] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [dateFilterType, setDateFilterType] = useState("deliveryDate");
   const [invoiceLoadder, setInvoiceLoading] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All");
-
   const [loadingActionId, setLoadingActionId] = useState(null);
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
   const [fulfillTargetOrderId, setFulfillTargetOrderId] = useState(null);
+  const [showChannelModal, setShowChannelModal] = useState(false);
 
   const [confirmOrderModalVisible, setConfirmOrderModalVisible] =
     useState(false);
-  const [confirmTargetOrderId, setConfirmTargetOrderId] = useState(null); // <-- Added dedicated state
+  const [confirmTargetOrderId, setConfirmTargetOrderId] = useState(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -648,17 +661,25 @@ export default function ProductSelectionScreen({ navigation }) {
     () => selectedDate?.toLocaleDateString("en-CA"),
     [selectedDate],
   );
+  const dateObj = dayjs(selectedDate);
+  const displayDate = dateObj.format("DD-MM-YYYY");
 
   const [
     fetchOrders,
     { data: orderList, loading, error: orderListError, refetch },
   ] = useLazyQuery(ORDER_LIST_QUERY);
+
+  const { data: channelsData, loading: channelsLoading } =
+    useQuery(GET_CHANNELS);
+
   const { data: monthlyOrdersData, refetch: refetchMonthlyData } = useQuery(
     MONTH_TOTAL_ORDERS,
     { variables: getSelectedMonthDateRange },
   );
+
   const { data: warehouseData, loading: warehouseLoading } =
     useQuery(WAREHOUSE_LIST);
+
   const [fetchFulfillData] = useLazyQuery(ORDER_FULFILL_DATA, {
     fetchPolicy: "network-only",
   });
@@ -787,11 +808,40 @@ export default function ProductSelectionScreen({ navigation }) {
     });
   }, [orders, activeFilter]);
 
+  const handleChannelSelect = useCallback(
+    async (channelId) => {
+      setShowChannelModal(false);
+
+      try {
+        const result = await createDraftOrder({
+          variables: {
+            input: {
+              channelId: channelId,
+            },
+          },
+        });
+
+        const orderId = result?.data?.draftOrderCreate?.order?.id || "";
+
+        if (orderId) {
+          navigation.navigate("createOrder", { order_id: orderId });
+        } else {
+          toast.error("Failed to retrieve new draft order ID.");
+        }
+      } catch (err) {
+        toast.error("Failed to create draft order.");
+        console.error("Draft Creation Error:", err);
+      }
+    },
+    [createDraftOrder, navigation],
+  );
+
   const handleConfirmOrder = async (id) => {
     if (!id) return;
     setLoadingActionId(id);
     try {
       const { data } = await confirmOrder({ variables: { id } });
+
       if (data?.orderConfirm?.errors?.length > 0) {
         toast.error(data.orderConfirm.errors[0].message);
       } else {
@@ -882,13 +932,14 @@ export default function ProductSelectionScreen({ navigation }) {
 
   const debouncedSearch = useMemo(
     () =>
-      debounce((query) => {
+      debounce((query, filterType = dateFilterType) => {
         const safeQuery = query ?? "";
         fetchOrders({
           variables: {
             first: 100,
+
             filter: {
-              created: { gte: todayDate, lte: todayDate },
+              [filterType]: { gte: todayDate, lte: todayDate },
               ...(safeQuery.trim() && { search: safeQuery }),
             },
             sort: { direction: "DESC", field: "NUMBER" },
@@ -896,7 +947,7 @@ export default function ProductSelectionScreen({ navigation }) {
           fetchPolicy: "network-only",
         });
       }, 500),
-    [fetchOrders, todayDate],
+    [fetchOrders, todayDate, dateFilterType],
   );
 
   const handleSearchChange = useCallback(
@@ -907,13 +958,17 @@ export default function ProductSelectionScreen({ navigation }) {
     [debouncedSearch],
   );
 
-  const orderDraftCreateHandler = useCallback(async () => {
-    try {
-      const result = await createDraftOrder();
-      const orderId = result?.data?.draftOrderCreate?.order?.id || "";
-      navigation.navigate("createOrder", { order_id: orderId });
-    } catch {}
-  }, [createDraftOrder, navigation]);
+  const orderDraftCreateHandler = useCallback(() => {
+    setShowChannelModal(true);
+  }, []);
+
+  // const orderDraftCreateHandler = useCallback(async () => {
+  //   try {
+  //     const result = await createDraftOrder();
+  //     const orderId = result?.data?.draftOrderCreate?.order?.id || "";
+  //     navigation.navigate("createOrder", { order_id: orderId });
+  //   } catch {}
+  // }, [createDraftOrder, navigation]);
 
   const handleOrderDetails = useCallback(
     (order_id) => {
@@ -940,7 +995,10 @@ export default function ProductSelectionScreen({ navigation }) {
   const onChangeDate = useCallback(
     (event, date) => {
       setShowPicker(false);
-      if (date) setSelectedDate(date);
+      if (date) {
+        setSelectedDate(date);
+        persistedSelectedDate = date;
+      }
       debouncedSearch(searchQuery);
     },
     [debouncedSearch, searchQuery],
@@ -952,8 +1010,9 @@ export default function ProductSelectionScreen({ navigation }) {
       if (refetch) {
         await refetch({
           first: 100,
+
           filter: {
-            created: { gte: todayDate, lte: todayDate },
+            [dateFilterType]: { gte: todayDate, lte: todayDate },
             ...(searchQuery.trim() && { search: searchQuery }),
           },
           sort: { direction: "DESC", field: "NUMBER" },
@@ -962,8 +1021,9 @@ export default function ProductSelectionScreen({ navigation }) {
         await fetchOrders({
           variables: {
             first: 100,
+
             filter: {
-              created: { gte: todayDate, lte: todayDate },
+              [dateFilterType]: { gte: todayDate, lte: todayDate },
               ...(searchQuery.trim() && { search: searchQuery }),
             },
             sort: { direction: "DESC", field: "NUMBER" },
@@ -977,7 +1037,14 @@ export default function ProductSelectionScreen({ navigation }) {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchOrders, refetch, refetchMonthlyData, todayDate, searchQuery]);
+  }, [
+    fetchOrders,
+    refetch,
+    refetchMonthlyData,
+    todayDate,
+    searchQuery,
+    dateFilterType,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1005,6 +1072,7 @@ export default function ProductSelectionScreen({ navigation }) {
         }}
         onFulfill={onFulfillClick}
         onMarkPaid={handleMarkPaid}
+        loadingActionId={loadingActionId}
       />
     ),
     [
@@ -1012,12 +1080,13 @@ export default function ProductSelectionScreen({ navigation }) {
       handleGenerateInvoice,
       invoiceLoadder,
       selectedOrderId,
+      loadingActionId,
     ],
   );
 
   useEffect(() => {
-    debouncedSearch(searchQuery);
-  }, [selectedDate]);
+    debouncedSearch(searchQuery, dateFilterType);
+  }, [selectedDate, dateFilterType]);
 
   useEffect(() => {
     return () => debouncedSearch.cancel();
@@ -1027,14 +1096,10 @@ export default function ProductSelectionScreen({ navigation }) {
 
   return (
     <ScreenLayout>
-      <Modal
-        visible={!!loadingActionId}
-        transparent={true}
-        animationType="fade"
-      >
+      <Modal visible={refreshing} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={styles.fullScreenLoaderText}>Processing...</Text>
+          <Text style={styles.fullScreenLoaderText}>Loading Orders...</Text>
         </View>
       </Modal>
 
@@ -1122,23 +1187,39 @@ export default function ProductSelectionScreen({ navigation }) {
               style={styles.dateInput}
               onPress={() => setShowPicker(true)}
             >
-              <Ionicons
-                name="calendar-outline"
-                size={20}
-                color={colors.WHITE}
-              />
-              <Text style={styles.datePickerStyle}>{todayDate}</Text>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={16}
+                  color={theme.secondary}
+                />
+                <Text style={styles.btnText}>
+                  {dateFilterType === "deliveryDate"
+                    ? "Delivery Date"
+                    : "Created Date"}
+                </Text>
+              </View>
+              <Text style={styles.datePickerStyle}>{displayDate}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.refreshButton}
+              style={styles.iconButton}
+              onPress={() => setShowFilterModal(true)}
+            >
+              <Ionicons name="filter-outline" size={20} color={theme.text} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconButton}
               onPress={handleRefresh}
               disabled={refreshing}
             >
               {refreshing ? (
                 <ActivityIndicator size="small" color={theme.text} />
               ) : (
-                <Ionicons name="refresh-outline" size={22} color={theme.text} />
+                <Ionicons name="refresh-outline" size={20} color={theme.text} />
               )}
             </TouchableOpacity>
           </View>
@@ -1174,8 +1255,6 @@ export default function ProductSelectionScreen({ navigation }) {
             }
           />
         )}
-
-        {loading && <LoadingSkeleton theme={theme} />}
       </View>
 
       <FAB
@@ -1193,6 +1272,60 @@ export default function ProductSelectionScreen({ navigation }) {
         warehouses={warehouseData?.warehouses?.edges || []}
         loading={warehouseLoading}
       />
+
+      <Modal
+        visible={showFilterModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filter By Date</Text>
+
+            <TouchableOpacity
+              style={styles.modalItem}
+              onPress={() => {
+                setDateFilterType("deliveryDate");
+                setShowFilterModal(false);
+              }}
+            >
+              <Text style={styles.modalText}>Delivery Date</Text>
+              {dateFilterType === "deliveryDate" && (
+                <Ionicons
+                  name="checkmark"
+                  size={20}
+                  color={theme.textSecondary}
+                />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalItem}
+              onPress={() => {
+                setDateFilterType("created");
+                setShowFilterModal(false);
+              }}
+            >
+              <Text style={styles.modalText}>Created Date</Text>
+              {dateFilterType === "created" && (
+                <Ionicons
+                  name="checkmark"
+                  size={20}
+                  color={theme.textSecondary}
+                />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setShowFilterModal(false)}
+            >
+              <Text style={{ color: colors.CANCELED }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={confirmOrderModalVisible}
@@ -1256,6 +1389,59 @@ export default function ProductSelectionScreen({ navigation }) {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showChannelModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowChannelModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Channel</Text>
+
+            {channelsLoading ? (
+              <ActivityIndicator size="large" color={theme.textSecondary} />
+            ) : (
+              <FlatList
+                data={channelsData?.publicChannels || []}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.modalItem}
+                    onPress={() => handleChannelSelect(item.id)}
+                  >
+                    <Text style={styles.modalText}>{item.name}</Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={theme.secondary}
+                    />
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <Text
+                    style={{
+                      textAlign: "center",
+                      color: theme.secondary,
+                      marginVertical: 20,
+                    }}
+                  >
+                    No channels available.
+                  </Text>
+                }
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setShowChannelModal(false)}
+            >
+              <Text style={{ color: colors.CANCELED }}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

@@ -4,7 +4,7 @@ import {
   logout as logoutAuth,
 } from "../redux/slices/authSlice";
 import { localStore } from "../localStore/LocalStore";
-import { GRAPHQL_BASE_URL } from "@env";
+import { GRAPHQL_BASE_URL, GRAPHQL_BASE_URL_LEDGE } from "@env";
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -21,7 +21,7 @@ const processQueue = (error, token = null) => {
 };
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: "https://api.kisanbasket.com/api/ledger",
+  baseUrl: GRAPHQL_BASE_URL_LEDGE,
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token;
     if (token) {

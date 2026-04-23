@@ -45,7 +45,7 @@ const App = () => {
           setThemeName(cleanTheme);
         }
       } catch (e) {
-        console.log("App init error:", e);
+        // console.log("App init error:", e);
       } finally {
         setAppIsReady(true);
         RNBootSplash.hide({ fade: true });
@@ -63,7 +63,6 @@ const App = () => {
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
         <View style={styles.root}>
-          {/* DYNAMIC STATUS BAR */}
           <StatusBar
             animated={true}
             barStyle={statusBarStyle}

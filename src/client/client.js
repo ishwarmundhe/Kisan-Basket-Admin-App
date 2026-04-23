@@ -86,7 +86,7 @@ const getNewToken = async () => {
       return data.tokenRefresh.token;
     }
   } catch (error) {
-    console.log("Refresh request failed", error);
+    //  console.log("Refresh request failed", error);
   }
   return null;
 };

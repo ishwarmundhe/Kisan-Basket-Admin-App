@@ -84,6 +84,9 @@ export const ORDER_DRAFT_FINALIZE = gql`
         userEmail
         chargeStatus
         actions
+        channel {
+          name
+        }
       }
     }
   }
@@ -220,10 +223,9 @@ export const SHIPPING_METHOD_UPDATE = gql`
     }
   }
 `;
-
 export const ORDER_DRAFT_CREATE = gql`
-  mutation {
-    draftOrderCreate(input: { channelId: "Q2hhbm5lbDoy" }) {
+  mutation OrderDraftCreate($input: DraftOrderCreateInput!) {
+    draftOrderCreate(input: $input) {
       errors {
         code
         field
@@ -235,6 +237,7 @@ export const ORDER_DRAFT_CREATE = gql`
     }
   }
 `;
+
 export const CANCEL_ORDER_QUERY = gql`
   mutation orderCancellation($id: ID!) {
     orderCancel(id: $id) {
@@ -415,7 +418,6 @@ export const ORDER_CONFIRM = gql`
   }
 `;
 
-
 export const ORDER_LINE_UPDATE = gql`
   mutation OrderLineUpdate($id: ID!, $input: OrderLineInput!) {
     orderLineUpdate(id: $id, input: $input) {
@@ -439,7 +441,6 @@ export const ORDER_LINE_UPDATE = gql`
     }
   }
 `;
-
 
 export const ORDER_MARK_AS_PAID = gql`
   mutation OrderMarkAsPaid($id: ID!) {
@@ -472,7 +473,7 @@ export const FULFILL_ORDER = gql`
   }
 `;
 
-// Add to ../../../graphql/Query.js
+
 export const WAREHOUSE_LIST = gql`
   query WarehouseList {
     warehouses(first: 20) {

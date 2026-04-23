@@ -46,6 +46,17 @@ export const GET_PRODUCTS = gql`
   }
 `;
 
+export const GET_CHANNELS = gql`
+  query publicChannels {
+    publicChannels {
+      currencyCode
+      id
+      name
+      slug
+    }
+  }
+`;
+
 export const USER_DETAILS_QUERY = gql`
   query UserDetails {
     me {
@@ -209,6 +220,10 @@ export const ORDER_LIST_QUERY = gql`
             message
           }
           collectionPointName
+          channel {
+            name
+            id
+          }
         }
       }
       pageInfo {
@@ -311,6 +326,7 @@ export const SEARCH_CUSTOMER_QUERY = gql`
       }
       pageInfo {
         hasNextPage
+        endCursor
       }
       totalCount
     }
@@ -434,6 +450,19 @@ export const MONTH_TOTAL_ORDERS = gql`
   query MyQuery($gte: Date!, $lte: Date!) {
     orders(filter: { created: { gte: $gte, lte: $lte } }) {
       totalCount
+    }
+  }
+`;
+
+export const CHECKOUT_SHIPPING_METHODS_QUERY = gql`
+  query CheckoutShippingMethods($channelSlug: String!) {
+    channel(slug: $channelSlug) {
+      availableShippingMethodsPerCountry(countries: IN) {
+        shippingMethods {
+          id
+          name
+        }
+      }
     }
   }
 `;
