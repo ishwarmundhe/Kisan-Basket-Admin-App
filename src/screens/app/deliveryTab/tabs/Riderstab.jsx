@@ -372,7 +372,7 @@ const ConfirmModal = ({
 };
 
 // RidersTab
-const RidersTab = (date) => {
+const RidersTab = () => {
   const { theme } = useTheme();
   const styles = useStyles(theme);
 

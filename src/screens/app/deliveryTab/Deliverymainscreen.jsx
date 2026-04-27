@@ -7,8 +7,6 @@ import {
   SafeAreaView,
   StatusBar,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-
 import OrdersTab from "./tabs/Orderstab";
 import RidersTab from "./tabs/Riderstab";
 import CODTab from "./tabs/Codtab";
@@ -22,40 +20,13 @@ const TABS = [
 
 const DeliveryMainScreen = () => {
   const { theme } = useTheme();
-
   const [activeTab, setActiveTab] = useState("orders");
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
 
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: theme.background }]}
     >
       <StatusBar barStyle="light-content" />
-
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => setShowPicker(true)}>
-          <Text style={[styles.dateText, { color: theme.heading }]}>
-            {selectedDate.toLocaleDateString("en-IN", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {showPicker && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          onChange={(e, date) => {
-            setShowPicker(false);
-            if (date) setSelectedDate(date);
-          }}
-        />
-      )}
 
       <View style={[styles.tabBar, { borderBottomColor: theme.border }]}>
         {TABS.map((tab) => {
@@ -83,9 +54,9 @@ const DeliveryMainScreen = () => {
       </View>
 
       <View style={{ flex: 1 }}>
-        {activeTab === "orders" && <OrdersTab date={selectedDate} />}
-        {activeTab === "riders" && <RidersTab date={selectedDate} />}
-        {activeTab === "cod" && <CODTab date={selectedDate} />}
+        {activeTab === "orders" && <OrdersTab />}
+        {activeTab === "riders" && <RidersTab />}
+        {activeTab === "cod" && <CODTab />}
       </View>
     </SafeAreaView>
   );
@@ -93,15 +64,6 @@ const DeliveryMainScreen = () => {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  header: {
-    paddingBottom: 16,
-    alignItems: "center",
-    borderBottomWidth: 1,
-  },
-  dateText: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
   tabBar: {
     flexDirection: "row",
     borderBottomWidth: 1,

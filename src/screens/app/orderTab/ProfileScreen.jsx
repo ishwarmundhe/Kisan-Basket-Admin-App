@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import ScreenLayout from "../ScreenLayout";
-import { localStore } from "../../../localStore/LocalStore";
+import { localStore } from "../../../utils/localStore";
 import { toast } from "sonner-native";
 import { AuthContext } from "../../../constant/AuthProvider";
 import {

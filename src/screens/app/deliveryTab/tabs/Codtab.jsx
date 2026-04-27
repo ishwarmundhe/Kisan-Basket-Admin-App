@@ -327,7 +327,7 @@ const useCardStyles = (theme) =>
     [theme],
   );
 
-const CODTab = ({ date }) => {
+const CODTab = () => {
   const { theme } = useTheme();
   const styles = useStyles(theme);
 

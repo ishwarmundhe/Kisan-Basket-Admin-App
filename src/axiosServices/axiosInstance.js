@@ -1,5 +1,5 @@
 import axios from "axios";
-import { localStore } from "../localStore/LocalStore";
+import { localStore } from "../utils/localStore";
 import { API_BASE_URL } from "@env";
 import { bareClient } from "../client/client";
 import { REFRESH_TOKEN_MUTATION } from "../graphql/Mutation";

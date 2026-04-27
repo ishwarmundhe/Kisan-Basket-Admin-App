@@ -236,6 +236,52 @@ export const ORDER_LIST_QUERY = gql`
     }
   }
 `;
+
+export const GET_DRAFT_ORDERS = gql`
+  query GetDraftOrders {
+    draftOrders(first: 20, sortBy: { direction: DESC, field: CREATED_AT }) {
+      edges {
+        node {
+          id
+          number
+          created
+          billingAddress {
+            firstName
+            lastName
+          }
+          total {
+            gross {
+              amount
+              currency
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const GET_PRODUCT_VARIANTS = gql`
+  query GetProductVariants($id: ID!, $channel: String!) {
+    product(id: $id, channel: $channel) {
+      id
+      name
+      variants {
+        id
+        name
+        pricing {
+          price {
+            gross {
+              amount
+              currency
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const ORDER_DETAILS_WITH_METADATA = gql`
   query OrderDetailsWithMetadata($id: ID!) {
     order(id: $id) {
@@ -267,6 +313,12 @@ export const ORDER_DETAILS_WITH_METADATA = gql`
         }
       }
       variantName
+      variant {
+        id
+        product {
+          id
+        }
+      }
     }
     shippingAddress {
       firstName

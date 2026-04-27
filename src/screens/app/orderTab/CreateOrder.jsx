@@ -87,6 +87,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const [aiModalVisible, setAiModalVisible] = useState(false);
   const [aiPromptText, setAiPromptText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [isChangingVariant, setIsChangingVariant] = useState(false);
 
   const [confirmOrderModalVisible, setConfirmOrderModalVisible] =
     useState(false);
@@ -151,6 +152,8 @@ export default function OrderSummaryScreen({ navigation, route }) {
         id: line.id,
         productName: line.productName,
         variantName: line.variantName,
+        variantId: line.variant?.id,
+        productId: line.variant?.product?.id,
         quantity: line.quantity,
         amount: line.unitPrice.gross.amount,
         currency: line.unitPrice.gross.currency,
@@ -203,7 +206,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   const fetchOrderData = useCallback(
     async (forceFetch = false) => {
-      if ((cancellationOrder && order_id) || forceFetch) {
+      if (order_id) {
         try {
           setLocalLoading(true);
           const { data } = await fetchOrderDetails({
@@ -219,7 +222,73 @@ export default function OrderSummaryScreen({ navigation, route }) {
         }
       }
     },
-    [cancellationOrder, order_id],
+    [order_id],
+  );
+
+  // const fetchOrderData = useCallback(
+  //   async (forceFetch = false) => {
+  //     if ((cancellationOrder && order_id) || forceFetch) {
+  //       try {
+  //         setLocalLoading(true);
+  //         const { data } = await fetchOrderDetails({
+  //           variables: { id: order_id },
+  //           fetchPolicy: "network-only",
+  //         });
+  //         setOrderWithMetaData(data?.order?.lines || []);
+  //         setOrderStatus(data?.order?.status || "");
+  //       } catch (err) {
+  //         toast.error("Failed to fetch order details");
+  //       } finally {
+  //         setLocalLoading(false);
+  //       }
+  //     }
+  //   },
+  //   [cancellationOrder, order_id],
+  // );
+
+  const changeVariant = useCallback(
+    async (lineId, newVariantId, quantity) => {
+      if (!lineId || !newVariantId || isChangingVariant) return;
+      try {
+        setIsChangingVariant(true);
+
+        const deleteResponse = await deleteOrderProduct({
+          variables: { id: lineId },
+        });
+        const deleteErrors =
+          deleteResponse?.data?.orderLineDelete?.errors || [];
+        if (deleteErrors.length > 0) {
+          throw new Error(
+            deleteErrors[0].message || "Failed to remove old variant",
+          );
+        }
+
+        const addResponse = await orderLineAddMutation({
+          variables: {
+            id: order_id,
+            input: [{ variantId: newVariantId, quantity }],
+          },
+        });
+        const addErrors = addResponse?.data?.orderLinesCreate?.errors || [];
+        if (addErrors.length > 0) {
+          throw new Error(addErrors[0].message || "Failed to add new variant");
+        }
+
+        toast.success("Variant updated successfully");
+        await fetchOrderData(true);
+      } catch (err) {
+        toast.error(err.message || "Failed to change variant");
+      } finally {
+        setIsChangingVariant(false);
+      }
+    },
+    [
+      order_id,
+      deleteOrderProduct,
+      orderLineAddMutation,
+      fetchOrderData,
+      isChangingVariant,
+    ],
   );
 
   const deleteProduct = async (id) => {
@@ -618,7 +687,9 @@ export default function OrderSummaryScreen({ navigation, route }) {
       return (
         <View style={styles.actionButtonContainer}>
           <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{orderStatus}</Text>
+            <Text style={styles.statusText}>
+              {orderStatus || "Loading Status..."}
+            </Text>
           </View>
           <TouchableOpacity
             style={[
@@ -748,9 +819,10 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   return (
     <PaperProvider>
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      {renderActionButtons()}
+      <View style={styles.safeAreaView}>
         {fetchMetaDataLoading ? (
-          <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
             {[...Array(2)].map((_, index) => (
               <View key={index} style={styles.shimmerCard}>
                 <ShimmerPlaceholder height={30} width="60%" borderRadius={6} />
@@ -760,13 +832,14 @@ export default function OrderSummaryScreen({ navigation, route }) {
         ) : (
           <ScrollView contentContainerStyle={styles.container}>
             {error && <ErrorMessage errorMessage={error.message} />}
-            {renderActionButtons()}
-
             <OrderTable
               orderLines={orderLines}
               onDeleteProduct={deleteProduct}
               onUpdateQuantity={updateQuantity}
+              onChangeVariant={changeVariant}
+              isChangingVariant={isChangingVariant}
               isEditable={!cancellationOrder || orderStatus === "UNCONFIRMED"}
+              tableConfig={!cancellationOrder}
             />
           </ScrollView>
         )}
@@ -813,7 +886,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
             />
           </View>
         )}
-      </SafeAreaView>
+      </View>
 
       {customerVisible && (
         <BottomSheet

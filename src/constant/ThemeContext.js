@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { localStore } from "../localStore/LocalStore";
+import { localStore } from "../utils/localStore";
 
 export const ThemeContext = createContext();
 

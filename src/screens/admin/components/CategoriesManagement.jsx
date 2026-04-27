@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
 } from "react-native";
+import { toast } from "sonner-native";
 import {
   useGetCategoriesQuery,
   useCreateCategoryMutation,
@@ -49,7 +50,7 @@ export default function CategoriesManagement() {
   };
 
   const handleSave = async () => {
-    if (!code || !label) return Alert.alert("Error", "Fill all fields");
+    if (!code || !label) return toast.error("Error", "Fill all fields");
     const payload = { code: code.trim().toUpperCase(), label: label.trim() };
     try {
       if (editingCategory)
@@ -57,7 +58,7 @@ export default function CategoriesManagement() {
       else await createCategory(payload).unwrap();
       setShowModal(false);
     } catch (e) {
-      Alert.alert("Error", "Failed to save");
+      toast.error("Error", "Failed to save");
     }
   };
 

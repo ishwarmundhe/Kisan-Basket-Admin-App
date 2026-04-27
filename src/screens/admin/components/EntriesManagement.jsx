@@ -165,7 +165,6 @@ export default function EntriesManagement() {
       }
       setModalVisible(false);
     } catch (error) {
-      console.error(error);
       toast.error("Failed to save");
     }
   };

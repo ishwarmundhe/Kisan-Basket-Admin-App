@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import { Alert } from "react-native";
-import { localStore } from "../localStore/LocalStore";
+import { localStore } from "../utils/localStore";
 import { setLogout, setTokenUpdater } from "./AuthService";
 import { useDispatch } from "react-redux";
 import {
@@ -9,6 +9,7 @@ import {
   logout as logoutAuth,
 } from "../redux/slices/authSlice";
 import { GRAPHQL_BASE_URL } from "@env";
+import { toast } from "sonner-native";
 
 export const AuthContext = createContext();
 
@@ -120,9 +121,8 @@ export const AuthProvider = ({ children }) => {
 
       return newToken;
     } catch (error) {
-      console.error("Token refresh failed:", error);
       await logout();
-      Alert.alert("Session Expired", "Please login again.");
+      toast.error("Session Expired", "Please login again.");
       return null;
     }
   };

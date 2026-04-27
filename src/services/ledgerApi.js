@@ -3,7 +3,7 @@ import {
   setToken as setAuthToken,
   logout as logoutAuth,
 } from "../redux/slices/authSlice";
-import { localStore } from "../localStore/LocalStore";
+import { localStore } from "../utils/localStore";
 import { GRAPHQL_BASE_URL, GRAPHQL_BASE_URL_LEDGE } from "@env";
 
 let isRefreshing = false;

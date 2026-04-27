@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { URL } from "@env";
 
-import { localStore } from "../localStore/LocalStore";
+import { localStore } from "../utils/localStore";
 
 const baseQueryWithAsyncToken = async (args, api, extraOptions) => {
   const token = await localStore.getToken();

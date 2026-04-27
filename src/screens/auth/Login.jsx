@@ -9,10 +9,10 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { toast } from "sonner-native";
 
 import { useMutation } from "@apollo/client/react";
 import { TOKEN_AUTH } from "../../graphql/Mutation";
-import { toast } from "sonner-native";
 import ScreenLayout from "../app/ScreenLayout";
 import KisanBasket from "../../assets/svg/KisanBasket";
 import { AuthContext } from "../../constant/AuthProvider";
@@ -126,7 +126,7 @@ const Login = ({ navigation }) => {
         await login(user, token, refreshToken);
       }
     } catch (err) {
-      Alert.alert(
+      toast.error(
         "Network Error",
         "Please check your connection and try again.",
       );

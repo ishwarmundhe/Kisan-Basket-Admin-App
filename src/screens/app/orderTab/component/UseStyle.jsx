@@ -2,9 +2,20 @@ import { StyleSheet } from "react-native";
 
 export const useStyle = (theme) =>
   StyleSheet.create({
+    safeAreaView: {
+      flexGrow: 1,
+      backgroundColor: theme.background,
+      marginTop: 10,
+    },
     container: {
       flexGrow: 1,
-      backgroundColor: theme.background, // Zinc 950
+      backgroundColor: theme.background,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 10,
+      overflow: "hidden",
+      marginHorizontal: 10,
+      // Zinc 950
     },
 
     // --- TABLE & LIST ---
@@ -48,7 +59,8 @@ export const useStyle = (theme) =>
     // --- ACTION BUTTONS (Top) ---
     actionButtonContainer: {
       flexDirection: "row",
-      padding: 16,
+      paddingTop: 10,
+      marginHorizontal: 10,
       gap: 12,
       backgroundColor: theme.background,
     },

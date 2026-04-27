@@ -139,7 +139,6 @@ const GenerateCustomerInvoice = ({ order_id, status, refetchOrder }) => {
         failOnCancel: false,
       });
     } catch (e) {
-      console.error("Download/Share Error:", e);
       throw new Error("Could not download or share invoice.");
     }
   };

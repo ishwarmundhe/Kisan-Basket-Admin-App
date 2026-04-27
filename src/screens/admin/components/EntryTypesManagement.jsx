@@ -1,16 +1,37 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Alert, Modal } from 'react-native';
-import { useGetEntryTypesQuery, useCreateEntryTypeMutation, useUpdateEntryTypeMutation, useDeleteEntryTypeMutation } from '../../../services/ledgerApi';
-import { Plus, Edit2, Trash2 } from 'lucide-react-native';
-import { RefreshControl } from 'react-native-gesture-handler';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  Modal,
+} from "react-native";
+import { toast } from "sonner-native";
+import {
+  useGetEntryTypesQuery,
+  useCreateEntryTypeMutation,
+  useUpdateEntryTypeMutation,
+  useDeleteEntryTypeMutation,
+} from "../../../services/ledgerApi";
+import { Plus, Edit2, Trash2 } from "lucide-react-native";
+import { RefreshControl } from "react-native-gesture-handler";
 
 export default function EntryTypesManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editingType, setEditingType] = useState(null);
-  const [code, setCode] = useState('');
-  const [label, setLabel] = useState('');
+  const [code, setCode] = useState("");
+  const [label, setLabel] = useState("");
 
-  const { data: types, isLoading, refetch, isFetching } = useGetEntryTypesQuery();
+  const {
+    data: types,
+    isLoading,
+    refetch,
+    isFetching,
+  } = useGetEntryTypesQuery();
   const [createType, { isLoading: isSaving }] = useCreateEntryTypeMutation();
   const [updateType] = useUpdateEntryTypeMutation();
   const [deleteType] = useDeleteEntryTypeMutation();
@@ -22,39 +43,51 @@ export default function EntryTypesManagement() {
       setLabel(type.label);
     } else {
       setEditingType(null);
-      setCode('');
-      setLabel('');
+      setCode("");
+      setLabel("");
     }
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!code || !label) return Alert.alert('Error', 'Fill all fields');
+    if (!code || !label) return toast.error("Error", "Fill all fields");
     const payload = { code: code.trim().toUpperCase(), label: label.trim() };
-    
+
     try {
-      if (editingType) await updateType({ id: editingType.id, ...payload }).unwrap();
+      if (editingType)
+        await updateType({ id: editingType.id, ...payload }).unwrap();
       else await createType(payload).unwrap();
       setShowModal(false);
-    } catch (e) { Alert.alert('Error', 'Failed to save'); }
+    } catch (e) {
+      toast.error("Error", "Failed to save");
+    }
   };
 
   const handleDelete = (id) => {
-      Alert.alert('Delete', 'Are you sure?', [{text: 'Cancel'}, {text:'Delete', onPress: ()=>deleteType(id)}]);
-  }
+    Alert.alert("Delete", "Are you sure?", [
+      { text: "Cancel" },
+      { text: "Delete", onPress: () => deleteType(id) },
+    ]);
+  };
 
   const renderItem = ({ item }) => (
     <View style={styles.itemCard}>
-      <View style={{flex: 1}}>
+      <View style={{ flex: 1 }}>
         <Text style={styles.itemLabel}>{item.label}</Text>
         <Text style={styles.itemCode}>{item.code}</Text>
       </View>
       <View style={styles.actions}>
-        <TouchableOpacity onPress={() => handleOpenModal(item)} style={styles.iconBtn}>
-            <Edit2 size={18} color="#667085" />
+        <TouchableOpacity
+          onPress={() => handleOpenModal(item)}
+          style={styles.iconBtn}
+        >
+          <Edit2 size={18} color="#667085" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.iconBtn}>
-            <Trash2 size={18} color="#D32F2F" />
+        <TouchableOpacity
+          onPress={() => handleDelete(item.id)}
+          style={styles.iconBtn}
+        >
+          <Trash2 size={18} color="#D32F2F" />
         </TouchableOpacity>
       </View>
     </View>
@@ -62,15 +95,25 @@ export default function EntryTypesManagement() {
 
   return (
     <View style={styles.container}>
-      {isLoading ? <ActivityIndicator size="large" color="#2E7D32" style={{marginTop: 50}} /> : (
-        <FlatList 
-            data={types} 
-            renderItem={renderItem} 
-            keyExtractor={item => item.id.toString()} 
+      {isLoading ? (
+        <ActivityIndicator
+          size="large"
+          color="#2E7D32"
+          style={{ marginTop: 50 }}
+        />
+      ) : (
+        <FlatList
+          data={types}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ padding: 16 }}
-          refreshControl={ 
-                <RefreshControl refreshing={isFetching} onRefresh={refetch} colors={['#2E7D32']} />
-            }
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={refetch}
+              colors={["#2E7D32"]}
+            />
+          }
         />
       )}
 
@@ -79,20 +122,49 @@ export default function EntryTypesManagement() {
         <Plus size={24} color="white" />
       </TouchableOpacity>
 
-      <Modal visible={showModal} transparent animationType="fade" onRequestClose={()=>setShowModal(false)}>
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{editingType ? 'Edit Type' : 'New Type'}</Text>
-                        <Text className='font-semibold'>Code</Text>
-            <TextInput style={styles.input} placeholder="Code (e.g. EXPENSE)" value={code} onChangeText={setCode} autoCapitalize="characters" />
-                        <Text className='font-semibold'>Label</Text>
-            
-            <TextInput style={styles.input} placeholder="Label (e.g. Expense)" value={label} onChangeText={setLabel} />
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={isSaving}>
-              {isSaving ? <ActivityIndicator color="white"/> : <Text style={styles.saveBtnText}>Save</Text>}
+            <Text style={styles.modalTitle}>
+              {editingType ? "Edit Type" : "New Type"}
+            </Text>
+            <Text className="font-semibold">Code</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Code (e.g. EXPENSE)"
+              value={code}
+              onChangeText={setCode}
+              autoCapitalize="characters"
+            />
+            <Text className="font-semibold">Label</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Label (e.g. Expense)"
+              value={label}
+              onChangeText={setLabel}
+            />
+            <TouchableOpacity
+              style={styles.saveBtn}
+              onPress={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.saveBtnText}>Save</Text>
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={()=>setShowModal(false)}>
-                <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setShowModal(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>

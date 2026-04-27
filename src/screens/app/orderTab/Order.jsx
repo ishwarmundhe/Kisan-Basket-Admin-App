@@ -6,6 +6,8 @@ import React, {
   useMemo,
   useRef,
 } from "react";
+import { useDispatch } from "react-redux";
+import { setToken } from "../../../redux/slices/authSlice";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
@@ -18,17 +20,16 @@ import {
   Modal,
   Animated,
 } from "react-native";
+import { localStore } from "../../../utils/localStore";
 import { Card, Text, FAB } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { debounce } from "lodash";
 import ScreenLayout from "../ScreenLayout";
-import ShimmerPlaceholder from "../../../components/custom/shimmerLoaderPlaceholder";
 import ErrorMessage from "../../../components/custom/errorMessage";
 import { colors } from "../../../constant/Colors";
 import dayjs from "dayjs";
-import { CHANNEL } from "@env";
 
 import {
   ORDER_LIST_QUERY,
@@ -37,6 +38,7 @@ import {
   ORDER_FULFILL_DATA,
   CHECKOUT_SHIPPING_METHODS_QUERY,
   GET_CHANNELS,
+  GET_DRAFT_ORDERS,
 } from "../../../graphql/Query";
 
 import {
@@ -166,13 +168,29 @@ const useStyle = (theme) =>
           flex: 1,
           height: 48,
           paddingHorizontal: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          justifyContent: "center",
           borderWidth: 1,
           borderColor: theme.border,
           borderRadius: 8,
           backgroundColor: theme.primary,
+        },
+        dateInputHeader: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 2,
+        },
+        dateLabelText: {
+          color: theme.secondary,
+          fontSize: 12,
+          fontWeight: "500",
+        },
+        datePickerStyle: {
+          color: theme.text,
+          fontWeight: "600",
+          fontSize: 14,
         },
 
         iconButton: {
@@ -184,11 +202,6 @@ const useStyle = (theme) =>
           backgroundColor: theme.primary,
           justifyContent: "center",
           alignItems: "center",
-        },
-        datePickerStyle: {
-          color: theme.text,
-          fontWeight: "500",
-          fontSize: 15,
         },
 
         // --- BUTTONS ---
@@ -204,6 +217,22 @@ const useStyle = (theme) =>
         },
         createButtonText: {
           color: theme.background,
+          fontWeight: "600",
+          fontSize: 14,
+        },
+        draftsButton: {
+          borderWidth: 1,
+          borderColor: theme.border,
+          backgroundColor: theme.primary,
+          paddingHorizontal: 15,
+          marginRight: 8,
+          borderRadius: 8,
+          height: 48,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        draftsButtonText: {
+          color: theme.text,
           fontWeight: "600",
           fontSize: 14,
         },
@@ -606,6 +635,7 @@ const OrderItem = React.memo(
 export default function ProductSelectionScreen({ navigation }) {
   const { theme } = useTheme();
   const styles = useStyle(theme);
+  const dispatch = useDispatch();
 
   const { globalRefresh, setGlobalRefresh } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState("");
@@ -621,6 +651,7 @@ export default function ProductSelectionScreen({ navigation }) {
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
   const [fulfillTargetOrderId, setFulfillTargetOrderId] = useState(null);
   const [showChannelModal, setShowChannelModal] = useState(false);
+  const [showDraftsModal, setShowDraftsModal] = useState(false);
 
   const [confirmOrderModalVisible, setConfirmOrderModalVisible] =
     useState(false);
@@ -663,6 +694,15 @@ export default function ProductSelectionScreen({ navigation }) {
   );
   const dateObj = dayjs(selectedDate);
   const displayDate = dateObj.format("DD-MM-YYYY");
+
+  const {
+    data: draftData,
+    loading: draftsLoading,
+    refetch: refetchDrafts,
+  } = useQuery(GET_DRAFT_ORDERS, {
+    skip: !showDraftsModal,
+    fetchPolicy: "network-only",
+  });
 
   const [
     fetchOrders,
@@ -962,6 +1002,16 @@ export default function ProductSelectionScreen({ navigation }) {
     setShowChannelModal(true);
   }, []);
 
+  const handleDraftSelect = useCallback(
+    (draftId) => {
+      setShowDraftsModal(false);
+      if (draftId) {
+        navigation.navigate("createOrder", { order_id: draftId });
+      }
+    },
+    [navigation],
+  );
+
   // const orderDraftCreateHandler = useCallback(async () => {
   //   try {
   //     const result = await createDraftOrder();
@@ -1171,6 +1221,7 @@ export default function ProductSelectionScreen({ navigation }) {
                 onChangeText={handleSearchChange}
               />
             </View>
+
             <TouchableOpacity
               style={styles.createButton}
               onPress={orderDraftCreateHandler}
@@ -1187,21 +1238,30 @@ export default function ProductSelectionScreen({ navigation }) {
               style={styles.dateInput}
               onPress={() => setShowPicker(true)}
             >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-              >
+              <View style={styles.dateInputHeader}>
                 <Ionicons
                   name="calendar-outline"
-                  size={16}
+                  size={14}
                   color={theme.secondary}
                 />
-                <Text style={styles.btnText}>
+                <Text style={styles.dateLabelText}>
                   {dateFilterType === "deliveryDate"
                     ? "Delivery Date"
                     : "Created Date"}
                 </Text>
               </View>
               <Text style={styles.datePickerStyle}>{displayDate}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.draftsButton}
+              onPress={() => {
+                setShowDraftsModal(true);
+                if (refetchDrafts) refetchDrafts();
+              }}
+            >
+              <Text style={styles.draftsButtonText}>Draft </Text>
+              <Text style={styles.draftsButtonText}>Orders</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1441,6 +1501,100 @@ export default function ProductSelectionScreen({ navigation }) {
               onPress={() => setShowChannelModal(false)}
             >
               <Text style={{ color: colors.CANCELED }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showDraftsModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDraftsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: "80%" }]}>
+            <Text style={styles.modalTitle}>Draft Orders</Text>
+
+            {draftsLoading ? (
+              <ActivityIndicator
+                size="large"
+                color={theme.textSecondary}
+                style={{ marginVertical: 20 }}
+              />
+            ) : (
+              <FlatList
+                data={draftData?.draftOrders?.edges || []}
+                keyExtractor={(item) => item.node.id}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => {
+                  const dateStr = new Date(
+                    item.node.created,
+                  ).toLocaleDateString("en-CA");
+                  const timeStr = new Date(
+                    item.node.created,
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+
+                  return (
+                    <TouchableOpacity
+                      style={styles.modalItem}
+                      onPress={() => handleDraftSelect(item.node.id)}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.modalText, { fontWeight: "600" }]}>
+                          Draft #{item.node.number}
+                        </Text>
+                        {item.node.billingAddress?.firstName && (
+                          <Text
+                            style={[styles.modalText, { fontWeight: "600" }]}
+                          >
+                            {`${item.node.billingAddress?.firstName} ${item.node.billingAddress?.lastName}`}
+                          </Text>
+                        )}
+                        <Text style={[styles.modalText, { fontWeight: "600" }]}>
+                          {`Order Total: ${item.node.total?.gross?.amount}`}
+                        </Text>
+
+                        <Text
+                          style={{
+                            color: theme.secondary,
+                            fontSize: 13,
+                            marginTop: 4,
+                          }}
+                        >
+                          Created: {dateStr} at {timeStr}
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={theme.secondary}
+                      />
+                    </TouchableOpacity>
+                  );
+                }}
+                ListEmptyComponent={
+                  <Text
+                    style={{
+                      textAlign: "center",
+                      color: theme.secondary,
+                      marginVertical: 30,
+                    }}
+                  >
+                    No draft orders found.
+                  </Text>
+                }
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setShowDraftsModal(false)}
+            >
+              <Text style={{ color: colors.CANCELED }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>

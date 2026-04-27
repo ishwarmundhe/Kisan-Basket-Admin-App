@@ -24,11 +24,12 @@ export const localStore = {
       toast.error("Error refresh token:", err);
     }
   },
-  getRefreshTokenn: async () => {
+  getRefreshToken: async () => {
     try {
       return await AsyncStorage.getItem("refreshToken");
     } catch (err) {
-      toast.error("Error refresh token:", err);
+      toast.error("Error retrieving refresh token:", err);
+      return null;
     }
   },
   removeRefreshToken: async () => {
