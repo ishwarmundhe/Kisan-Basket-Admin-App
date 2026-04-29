@@ -1,5 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useTheme } from "../../../constant/ThemeContext";
 
@@ -78,6 +86,13 @@ const useStyle = (theme) => {
   );
 };
 
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 const DashboardStats = ({
   vegCount = 0,
   oilCount = 0,
@@ -105,6 +120,16 @@ const DashboardStats = ({
     }
   };
 
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext({
+      duration: 250,
+      create: { type: "easeInEaseOut", property: "opacity" },
+      update: { type: "easeInEaseOut" },
+      delete: { type: "easeInEaseOut", property: "opacity" },
+    });
+    setIsExpanded((prev) => !prev);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.statsContainer}>
@@ -112,7 +137,7 @@ const DashboardStats = ({
         <TouchableOpacity
           style={[styles.card, activeFilter === "All" && styles.selectedCard]}
           activeOpacity={0.7}
-          onPress={() => onFilterSelect("All")}
+          onPress={toggleExpand}
         >
           <View style={styles.cardContent}>
             <View style={[styles.iconContainer, styles.purpleIcon]}>

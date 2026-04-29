@@ -18,12 +18,13 @@ import LottieView from "lottie-react-native";
 import { useMutation, useQuery, useLazyQuery } from "@apollo/client/react";
 import Icon from "react-native-vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Modal, Portal, PaperProvider } from "react-native-paper";
+import { Modal, Portal } from "react-native-paper";
 import { toast } from "sonner-native";
 import ShimmerPlaceholder from "../../../components/custom/shimmerLoaderPlaceholder";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CHANNEL, URL } from "@env";
 import { useAiOrderPromptMutation } from "../../../services/deliveryApi";
+import { Dimensions } from "react-native";
 
 // Components
 import CustomerList from "../../../components/custom/customerList";
@@ -62,6 +63,7 @@ import { useStyle } from "./component/UseStyle";
 export default function OrderSummaryScreen({ navigation, route }) {
   const { theme } = useTheme();
   const styles = useStyle(theme);
+  const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
   // Context and route params
   const { token, setGlobalRefresh } = useContext(AuthContext);
@@ -685,7 +687,14 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const renderActionButtons = useCallback(() => {
     if (cancellationOrder) {
       return (
-        <View style={styles.actionButtonContainer}>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            padding: 10,
+            gap: 8,
+          }}
+        >
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>
               {orderStatus || "Loading Status..."}
@@ -818,76 +827,89 @@ export default function OrderSummaryScreen({ navigation, route }) {
   );
 
   return (
-    <PaperProvider>
-      {renderActionButtons()}
-      <View style={styles.safeAreaView}>
-        {fetchMetaDataLoading ? (
-          <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
-            {[...Array(2)].map((_, index) => (
-              <View key={index} style={styles.shimmerCard}>
-                <ShimmerPlaceholder height={30} width="60%" borderRadius={6} />
-              </View>
-            ))}
-          </View>
-        ) : (
-          <ScrollView contentContainerStyle={styles.container}>
-            {error && <ErrorMessage errorMessage={error.message} />}
-            <OrderTable
-              orderLines={orderLines}
-              onDeleteProduct={deleteProduct}
-              onUpdateQuantity={updateQuantity}
-              onChangeVariant={changeVariant}
-              isChangingVariant={isChangingVariant}
-              isEditable={!cancellationOrder || orderStatus === "UNCONFIRMED"}
-              tableConfig={!cancellationOrder}
-            />
-          </ScrollView>
-        )}
-
-        {!cancellationOrder && (
-          <View style={{ backgroundColor: theme.background }}>
-            {renderCustomerSelection()}
-            {renderDateSelection()}
-            {showPicker && (
-              <DateTimePicker
-                mode="date"
-                display="default"
-                value={selectedDate}
-                onChange={onChangeDate}
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["bottom"]}
+    >
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.background }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {renderActionButtons()}
+        <View style={styles.safeAreaView}>
+          {fetchMetaDataLoading ? (
+            <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+              {[...Array(2)].map((_, index) => (
+                <View key={index} style={styles.shimmerCard}>
+                  <ShimmerPlaceholder
+                    height={30}
+                    width="60%"
+                    borderRadius={6}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={{ flex: 1 }}>
+              {error && <ErrorMessage errorMessage={error.message} />}
+              <OrderTable
+                orderLines={orderLines}
+                onDeleteProduct={deleteProduct}
+                onUpdateQuantity={updateQuantity}
+                onChangeVariant={changeVariant}
+                isChangingVariant={isChangingVariant}
+                isEditable={!cancellationOrder || orderStatus === "UNCONFIRMED"}
+                tableConfig={!cancellationOrder}
               />
-            )}
-            {renderSlotSelection()}
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                (isFinalizing || isUIBusy) && { opacity: 0.6 },
-              ]}
-              onPress={() => setConfirmOrderModalVisible(true)}
-              disabled={isFinalizing || isUIBusy}
-            >
-              {isFinalizing || localLoading ? (
-                <ActivityIndicator color={theme.background} />
-              ) : (
-                <Text style={styles.confirmButtonText}>Confirm Order</Text>
+            </View>
+          )}
+
+          {!cancellationOrder && (
+            <View style={{ backgroundColor: theme.background }}>
+              {renderCustomerSelection()}
+              {renderDateSelection()}
+              {showPicker && (
+                <DateTimePicker
+                  mode="date"
+                  display="default"
+                  value={selectedDate}
+                  onChange={onChangeDate}
+                />
               )}
-            </TouchableOpacity>
-          </View>
-        )}
+              {renderSlotSelection()}
+              <TouchableOpacity
+                style={[
+                  styles.confirmButton,
+                  (isFinalizing || isUIBusy) && { opacity: 0.6 },
+                ]}
+                onPress={() => setConfirmOrderModalVisible(true)}
+                disabled={isFinalizing || isUIBusy}
+              >
+                {isFinalizing || localLoading ? (
+                  <ActivityIndicator color={theme.background} />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Confirm Order</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {renderSlotModal()}
-        {showSuccess && (
-          <View style={styles.animationContainer}>
-            <LottieView
-              ref={animationRef}
-              source={require("../../../assets/animation/Success.json")}
-              autoPlay
-              loop={false}
-              style={styles.animation}
-            />
-          </View>
-        )}
-      </View>
-
+          {renderSlotModal()}
+          {showSuccess && (
+            <View style={styles.animationContainer}>
+              <LottieView
+                ref={animationRef}
+                source={require("../../../assets/animation/Success.json")}
+                autoPlay
+                loop={false}
+                style={styles.animation}
+              />
+            </View>
+          )}
+        </View>
+      </ScrollView>
       {customerVisible && (
         <BottomSheet
           addCustomer={true}
@@ -896,7 +918,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
           backgroundColor={theme.primary}
           fontSize={22}
           title="Customer list"
-          height="80%"
+          height={SCREEN_HEIGHT * 0.5}
           setStatus={setCustomerVisible}
           visible={customerVisible}
           onClose={() => setCustomerVisible(false)}
@@ -912,14 +934,13 @@ export default function OrderSummaryScreen({ navigation, route }) {
           />
         </BottomSheet>
       )}
-
       {isVisible && (
         <BottomSheet
           paddingBottom={20}
           fontStyle="normal"
           fontSize={22}
           title="Product list"
-          height="88%"
+          height={SCREEN_HEIGHT * 0.8}
           backgroundColor={theme.primary}
           setStatus={setIsVisible}
           visible={isVisible}
@@ -936,7 +957,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
           />
         </BottomSheet>
       )}
-
       <Portal>
         <Modal
           visible={cancelModalVisible}
@@ -968,7 +988,11 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
             <TouchableOpacity onPress={handleConfirmCancel}>
               <Text
-                style={{ color: theme.error, fontWeight: "600", fontSize: 16 }}
+                style={{
+                  color: theme.error,
+                  fontWeight: "600",
+                  fontSize: 16,
+                }}
               >
                 Yes, Cancel
               </Text>
@@ -1137,6 +1161,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
           )}
         </Modal>
       </Portal>
-    </PaperProvider>
+    </SafeAreaView>
   );
 }

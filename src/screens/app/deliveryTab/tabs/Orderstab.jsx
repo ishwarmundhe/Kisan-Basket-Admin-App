@@ -589,6 +589,7 @@ const OrdersTab = ({ date }) => {
         data={allOrders}
         keyExtractor={(item) => String(item.order_id)}
         renderItem={renderOrder}
+        style={{ flex: 1 }}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
@@ -728,6 +729,7 @@ const OrdersTab = ({ date }) => {
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
               style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
             >
               <View style={styles.pickerHandle} />
               <View style={styles.pickerHeader}>
@@ -747,8 +749,9 @@ const OrdersTab = ({ date }) => {
               <ScrollView
                 contentContainerStyle={{
                   paddingHorizontal: 20,
-                  paddingBottom: 30,
+                  paddingBottom: Platform.OS === "ios" ? 60 : 40,
                 }}
+                keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
               >
                 {[
@@ -982,7 +985,7 @@ const OrdersTab = ({ date }) => {
                     {
                       backgroundColor: theme.textSecondary,
                       marginTop: 10,
-                      marginBottom: 200,
+                      marginBottom: 16,
                     },
                   ]}
                   onPress={handleRegisterSubmit}
@@ -1286,6 +1289,7 @@ const useStyles = (theme) =>
           left: 0,
           top: 0,
           bottom: 0,
+          width: 4,
           backgroundColor: theme.textSecondary,
           borderTopLeftRadius: 14,
           borderBottomLeftRadius: 14,

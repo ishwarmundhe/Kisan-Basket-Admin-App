@@ -8,7 +8,7 @@ import {
   Dimensions,
   TouchableOpacity, // <-- Switched to TouchableOpacity
   Keyboard,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
 } from "react-native";
 
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -98,7 +98,7 @@ const BottomSheet = ({
   }, []);
 
   const slide = React.useRef(new Animated.Value(screenHeight)).current;
-  
+
   const calculateHeight = () => {
     return typeof height === "string" && height.includes("%")
       ? (parseFloat(height) / 100) * screenHeight
@@ -131,11 +131,7 @@ const BottomSheet = ({
   const bottomSheetHeight = calculateHeight();
 
   return (
-  <Pressable onPress={slideDown} style={styles.backdrop}>
-      
-      {/* 3. Wrap your bottom sheet content in TouchableWithoutFeedback. 
-          This acts as a "shield" so taps inside the white area don't trigger the background close, 
-          but still allows buttons inside it to be clicked! */}
+    <Pressable onPress={slideDown} style={styles.backdrop}>
       <TouchableWithoutFeedback>
         <Animated.View
           style={[
@@ -148,16 +144,16 @@ const BottomSheet = ({
             { transform: [{ translateY: slide }], backgroundColor },
           ]}
         >
-          <View style={styles.handlerBar} /> 
-          
+          <View style={styles.handlerBar} />
+
           <View
-            style={{ 
-              flexDirection: "row", 
-              justifyContent: "space-between", 
-              alignItems: "center", 
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
               paddingHorizontal: 15,
               marginBottom: 10,
-              zIndex: 10 // <-- Added zIndex to ensure it sits above other layers
+              zIndex: 10, // <-- Added zIndex to ensure it sits above other layers
             }}
           >
             <Text

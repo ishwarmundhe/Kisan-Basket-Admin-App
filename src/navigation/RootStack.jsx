@@ -8,19 +8,19 @@ import ProductPriceUpdateScreen from "../screens/app/orderTab/DownloadOrderDetai
 import PersonalInformationScreen from "../screens/app/customerTab/CreateCustomer";
 import EditProductVarientPrice from "../screens/app/productsTab/EditProduct";
 import Performance from "../screens/app/Performance";
-import LedgerAdminScreen from '../screens/admin/LedgerAdminScreen'; 
+import LedgerAdminScreen from "../screens/admin/LedgerAdminScreen";
 import BottomTabs from "./BottomTabStack";
 
 const RootStack = createNativeStackNavigator();
 
 const RootStackNavigator = () => {
   const { theme } = useTheme();
-  
+
   return (
     <RootStack.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: theme.background },
-        headerTintColor: '#fff',
+        headerTintColor: "#fff",
         animation: "slide_from_right",
       }}
     >
@@ -30,17 +30,26 @@ const RootStackNavigator = () => {
         component={BottomTabs}
         options={{ headerShown: false }}
       />
-      
+
       {/* Screens outside tab bar */}
       <RootStack.Screen name="createOrder" component={CreateOrderScreen} />
       <RootStack.Screen name="profile" component={ProfileScreen} />
-      <RootStack.Screen name="purchasePriceOrder" component={ProductPriceUpdateScreen} />
-      <RootStack.Screen name="createCustomer" component={PersonalInformationScreen} />
-      <RootStack.Screen name="editVarient" component={EditProductVarientPrice} />
+      <RootStack.Screen
+        name="purchasePriceOrder"
+        component={ProductPriceUpdateScreen}
+      />
+      <RootStack.Screen
+        name="createCustomer"
+        component={PersonalInformationScreen}
+      />
+      <RootStack.Screen
+        name="editVarient"
+        component={EditProductVarientPrice}
+      />
       <RootStack.Screen name="Performance" component={Performance} />
-      
-      <RootStack.Screen 
-        name="LedgerFull" 
+
+      <RootStack.Screen
+        name="LedgerFull"
         component={LedgerAdminScreen}
         options={{
           title: "Ledger Management",

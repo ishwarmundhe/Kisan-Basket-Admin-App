@@ -37,6 +37,7 @@ const useLocalStyle = (theme) => {
         marginVertical: 8,
       },
       searchContainer: {
+        width: "100%",
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.primary,
@@ -45,6 +46,7 @@ const useLocalStyle = (theme) => {
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: Platform.OS === "ios" ? 10 : 4,
+        minHeight: 44,
       },
       searchInput: {
         flex: 1,
@@ -112,6 +114,8 @@ const useLocalStyle = (theme) => {
         flexDirection: "row",
         justifyContent: "space-between",
         paddingVertical: 16,
+        paddingHorizontal: 12,
+        paddingBottom: Platform.OS === "ios" ? 24 : 16,
         borderTopWidth: 1,
         borderTopColor: theme.border,
       },
@@ -269,7 +273,7 @@ const BottomSheetProductListContent = ({
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ScreenLayout paddingHorizontal={5}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#999" />
           <TextInput
@@ -393,7 +397,7 @@ const BottomSheetProductListContent = ({
             </Text>
           </TouchableOpacity>
         </View>
-      </ScreenLayout>
+      </View>
     </TouchableWithoutFeedback>
   );
 };

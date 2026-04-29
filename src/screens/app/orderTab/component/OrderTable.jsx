@@ -239,17 +239,13 @@ const OrderTable = ({
 
   return (
     <>
-      <View
-        style={[
-          styles.tableWrapper,
-          { borderColor: theme.border },
-          tableConfig && { maxHeight: 320 },
-        ]}
-      >
+      <View style={[styles.tableWrapper, { borderColor: theme.border }]}>
         <ScrollView horizontal contentContainerStyle={styles.horizontalScroll}>
           <ScrollView
             nestedScrollEnabled={true}
             showsVerticalScrollIndicator={true}
+            style={tableConfig ? { maxHeight: 280 } : undefined}
+            contentContainerStyle={{ flexGrow: 1 }}
           >
             <DataTable style={styles.table}>
               <DataTable.Header
@@ -480,14 +476,14 @@ const OrderTable = ({
 
 const styles = StyleSheet.create({
   tableWrapper: {
-    overflow: "hidden",
+    overflow: "visible", // ← allows scroll gestures to propagate
+    borderWidth: 1,
+    borderRadius: 8,
   },
   horizontalScroll: {
     flexGrow: 1,
   },
-  table: {
-    minWidth: 555,
-  },
+
   header: {},
   headerText: { color: "#ffff", fontWeight: "bold", fontSize: 13 },
   row: { borderBottomWidth: 1 },
@@ -498,11 +494,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   table: { borderRadius: 10, overflow: "hidden", minWidth: 555 },
-  header: {},
-  headerText: { color: "#ffff", fontWeight: "bold", fontSize: 13 },
-  row: { borderBottomWidth: 1 },
-  cellText: { color: "#ffff", fontSize: 13 },
-
   quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -562,7 +553,7 @@ const styles = StyleSheet.create({
   },
   loadingText: { fontSize: 14 },
 
-  variantList: { marginTop: 4, marginBottom: 12 },
+  variantList: { flex: 1, marginTop: 4, marginBottom: 12 },
   variantRow: {
     flexDirection: "row",
     alignItems: "center",

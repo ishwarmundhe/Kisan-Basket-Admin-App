@@ -20,6 +20,7 @@ import { Provider } from "react-redux";
 import { store } from "./src/redux/store";
 import { Toaster } from "sonner-native";
 import { useTokenManager } from "./src/hook/useTokenManager";
+import { PaperProvider } from "react-native-paper";
 
 const AppInitializer = ({ children }) => {
   useTokenManager();
@@ -39,16 +40,18 @@ const App = () => {
           <ApolloProvider client={client}>
             <Provider store={store}>
               <ThemeProvider initialTheme={"dark"}>
-                <AuthProvider>
-                  <KeyboardProvider>
-                    <ErrorBoundary>
-                      <AppInitializer>
-                        <Navigation />
-                        <Toaster />
-                      </AppInitializer>
-                    </ErrorBoundary>
-                  </KeyboardProvider>
-                </AuthProvider>
+                <PaperProvider>
+                  <AuthProvider>
+                    <KeyboardProvider>
+                      <ErrorBoundary>
+                        <AppInitializer>
+                          <Navigation />
+                          <Toaster />
+                        </AppInitializer>
+                      </ErrorBoundary>
+                    </KeyboardProvider>
+                  </AuthProvider>
+                </PaperProvider>
               </ThemeProvider>
             </Provider>
           </ApolloProvider>
