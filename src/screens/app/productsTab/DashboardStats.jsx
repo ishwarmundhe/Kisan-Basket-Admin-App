@@ -102,6 +102,7 @@ const DashboardStats = ({
   spicesCount = 0,
   pulsesCount = 0,
   paneerCount = 0,
+  mangoCount = 0,
   onPress,
   activeFilter = "All",
   onFilterSelect,
@@ -266,6 +267,23 @@ const DashboardStats = ({
                 </View>
                 <Text style={styles.label}>Pulses</Text>
                 <Text style={styles.value}>{pulsesCount}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.card,
+                activeFilter === "Mango" && styles.selectedCard,
+              ]}
+              activeOpacity={0.7}
+              onPress={() => handleFilterPress("Mango")}
+            >
+              <View style={styles.cardContent}>
+                <View style={[styles.iconContainer, styles.emeraldIcon]}>
+                  <Icon name="seed" size={16} color="#f97316" />
+                </View>
+                <Text style={styles.label}>Mango</Text>
+                <Text style={styles.value}>{mangoCount}</Text>
               </View>
             </TouchableOpacity>
 

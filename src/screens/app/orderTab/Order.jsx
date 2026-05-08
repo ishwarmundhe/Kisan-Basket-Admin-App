@@ -741,6 +741,7 @@ export default function ProductSelectionScreen({ navigation }) {
     let spices = 0;
     let pulses = 0;
     let paneer = 0;
+    let mango = 0;
     orders.forEach((edge) => {
       if (edge.node.status === "CANCELED") return;
       const lines = edge.node.lines || [];
@@ -750,6 +751,7 @@ export default function ProductSelectionScreen({ navigation }) {
         return cat.includes(keyword) || name.includes(keyword);
       };
       if (lines.some((l) => checkCategory(l, "atta"))) atta++;
+
       if (lines.some((l) => checkCategory(l, "oil"))) oil++;
       if (
         lines.some(
@@ -760,6 +762,12 @@ export default function ProductSelectionScreen({ navigation }) {
         )
       )
         spices++;
+      if (
+        lines.some(
+          (l) => checkCategory(l, "mango") || checkCategory(l, "hapus"),
+        )
+      )
+        mango++;
       if (
         lines.some((l) => checkCategory(l, "pulse") || checkCategory(l, "dal"))
       )
@@ -783,6 +791,8 @@ export default function ProductSelectionScreen({ navigation }) {
             !checkCategory(l, "spice") &&
             !checkCategory(l, "masala") &&
             !checkCategory(l, "powder") &&
+            !checkCategory(l, "mango") &&
+            !checkCategory(l, "hapus") &&
             !checkCategory(l, "pulse") &&
             !checkCategory(l, "dal") &&
             !checkCategory(l, "dairy") &&
@@ -793,7 +803,7 @@ export default function ProductSelectionScreen({ navigation }) {
       )
         veg++;
     });
-    return { atta, oil, veg, spices, pulses, paneer };
+    return { atta, oil, veg, spices, pulses, paneer, mango };
   }, [orders]);
 
   const displayedOrders = useMemo(() => {
@@ -815,6 +825,10 @@ export default function ProductSelectionScreen({ navigation }) {
             checkCategory(l, "spice") ||
             checkCategory(l, "masala") ||
             checkCategory(l, "powder"),
+        );
+      if (activeFilter === "Mango")
+        return lines.some(
+          (l) => checkCategory(l, "mango") || checkCategory(l, "hapus"),
         );
       if (activeFilter === "Pulses")
         return lines.some(
@@ -838,6 +852,8 @@ export default function ProductSelectionScreen({ navigation }) {
             !checkCategory(l, "masala") &&
             !checkCategory(l, "powder") &&
             !checkCategory(l, "pulse") &&
+            !checkCategory(l, "mango") &&
+            !checkCategory(l, "hapus") &&
             !checkCategory(l, "dal") &&
             !checkCategory(l, "dairy") &&
             !checkCategory(l, "paneer") &&
@@ -1183,6 +1199,7 @@ export default function ProductSelectionScreen({ navigation }) {
             oilCount={stats.oil}
             attaCount={stats.atta}
             paneerCount={stats.paneer}
+            mangoCount={stats.mango}
             spicesCount={stats.spices}
             pulsesCount={stats.pulses}
             todaysOrderCount={

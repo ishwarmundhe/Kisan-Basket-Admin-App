@@ -13,6 +13,8 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { useMutation, useQuery, useLazyQuery } from "@apollo/client/react";
@@ -71,6 +73,8 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   // Refs
   const animationRef = useRef(null);
+  const aiPromptTextRef = useRef("");
+  const promptInputRef = useRef(null);
 
   // State management
   const [isVisible, setIsVisible] = useState(false);
@@ -87,7 +91,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const [productList, setProductList] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
   const [aiModalVisible, setAiModalVisible] = useState(false);
-  const [aiPromptText, setAiPromptText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [isChangingVariant, setIsChangingVariant] = useState(false);
 
@@ -95,7 +98,12 @@ export default function OrderSummaryScreen({ navigation, route }) {
     useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
+  // NEW STATES FOR CUSTOM UNMATCHED ITEMS MODAL
+  const [unmatchedModalVisible, setUnmatchedModalVisible] = useState(false);
+  const [unmatchedItemsText, setUnmatchedItemsText] = useState("");
+
   const [AIOrderPrompt] = useAiOrderPromptMutation();
+
   // Date management
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -123,7 +131,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const [orderDraftCancel, { loading: isCancelling }] =
     useMutation(ORDER_DRAFT_CANCEL);
 
-  //
   const { data: shippingMethodData } = useQuery(
     CHECKOUT_SHIPPING_METHODS_QUERY,
     {
@@ -131,6 +138,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
       fetchPolicy: "cache-and-network",
     },
   );
+
   const { data: initialData, error } = useQuery(PRODUCT_LIST_QUERY, {
     variables: { first: 50, channel: CHANNEL },
     onCompleted: (data) => setProductList(data?.products?.edges || []),
@@ -144,8 +152,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   const formattedDate = selectedDate?.toLocaleDateString("en-CA");
   const isLoading = searchLoading || isCancelling;
-
-  // A common boolean to lock UI elements
   const isUIBusy = localLoading || aiLoading || fetchMetaDataLoading;
 
   const orderLines = useMemo(
@@ -165,16 +171,11 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   const updateQuantity = async (lineId, newQuantity) => {
     if (!lineId || newQuantity < 1 || isUIBusy) return;
-
     try {
       setLocalLoading(true);
       const response = await updateOrderProduct({
-        variables: {
-          id: lineId,
-          input: { quantity: newQuantity },
-        },
+        variables: { id: lineId, input: { quantity: newQuantity } },
       });
-
       const errors = response?.data?.orderLineUpdate?.errors || [];
       if (errors.length > 0) {
         toast.warning(errors[0].message || "Quantity not updated");
@@ -193,11 +194,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
       setSearchQuery(query);
       if (query.trim()) {
         searchProducts({
-          variables: {
-            first: 20,
-            channel: CHANNEL,
-            filter: { search: query },
-          },
+          variables: { first: 20, channel: CHANNEL, filter: { search: query } },
         });
       } else {
         setProductList(initialData?.products?.edges || []);
@@ -227,27 +224,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
     [order_id],
   );
 
-  // const fetchOrderData = useCallback(
-  //   async (forceFetch = false) => {
-  //     if ((cancellationOrder && order_id) || forceFetch) {
-  //       try {
-  //         setLocalLoading(true);
-  //         const { data } = await fetchOrderDetails({
-  //           variables: { id: order_id },
-  //           fetchPolicy: "network-only",
-  //         });
-  //         setOrderWithMetaData(data?.order?.lines || []);
-  //         setOrderStatus(data?.order?.status || "");
-  //       } catch (err) {
-  //         toast.error("Failed to fetch order details");
-  //       } finally {
-  //         setLocalLoading(false);
-  //       }
-  //     }
-  //   },
-  //   [cancellationOrder, order_id],
-  // );
-
   const changeVariant = useCallback(
     async (lineId, newVariantId, quantity) => {
       if (!lineId || !newVariantId || isChangingVariant) return;
@@ -259,11 +235,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
         });
         const deleteErrors =
           deleteResponse?.data?.orderLineDelete?.errors || [];
-        if (deleteErrors.length > 0) {
-          throw new Error(
-            deleteErrors[0].message || "Failed to remove old variant",
-          );
-        }
+        if (deleteErrors.length > 0) throw new Error(deleteErrors[0].message);
 
         const addResponse = await orderLineAddMutation({
           variables: {
@@ -272,9 +244,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
           },
         });
         const addErrors = addResponse?.data?.orderLinesCreate?.errors || [];
-        if (addErrors.length > 0) {
-          throw new Error(addErrors[0].message || "Failed to add new variant");
-        }
+        if (addErrors.length > 0) throw new Error(addErrors[0].message);
 
         toast.success("Variant updated successfully");
         await fetchOrderData(true);
@@ -366,11 +336,8 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
           const shippingErrors =
             shippingResponse?.data?.orderUpdateShipping?.errors ?? [];
-          if (shippingErrors.length > 0) {
-            throw new Error(
-              shippingErrors[0].message || "Failed to attach shipping method.",
-            );
-          }
+          if (shippingErrors.length > 0)
+            throw new Error(shippingErrors[0].message);
 
           const finalizeResponse = await orderDraftFinalize({
             variables: {
@@ -382,11 +349,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
           const finalErrors =
             finalizeResponse?.data?.draftOrderComplete?.errors ?? [];
-          if (finalErrors.length > 0) {
-            throw new Error(
-              finalErrors[0].message || "Failed to finalize order.",
-            );
-          }
+          if (finalErrors.length > 0) throw new Error(finalErrors[0].message);
 
           return finalizeResponse;
         })(),
@@ -406,7 +369,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
       );
     } catch (err) {
       toast.error("Unexpected Error Occurred");
-      console.error("Order Confirmation Error:", err);
     }
   }, [
     token,
@@ -439,16 +401,11 @@ export default function OrderSummaryScreen({ navigation, route }) {
   }, [order_id]);
 
   const cancelDraft = useCallback(async (id) => {
-    if (!id) {
-      toast.error("Order ID is missing");
-      return;
-    }
+    if (!id) return toast.error("Order ID is missing");
     try {
       const { data } = await orderDraftCancel({ variables: { id } });
       const errors = data?.draftOrderDelete?.errors || [];
-      if (errors.length > 0) {
-        throw new Error(errors[0]?.message || "Failed to cancel draft order");
-      }
+      if (errors.length > 0) throw new Error(errors[0]?.message);
       toast.success("Draft order cancelled successfully");
       setGlobalRefresh(true);
       setTimeout(() => navigation.goBack(), 1000);
@@ -459,11 +416,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   const handleConfirmCancel = () => {
     setCancelModalVisible(false);
-    if (cancellationOrder) {
-      cancelOrder();
-    } else {
-      cancelDraft(order_id);
-    }
+    cancellationOrder ? cancelOrder() : cancelDraft(order_id);
   };
 
   const toggleBottomSheet = useCallback(
@@ -478,16 +431,16 @@ export default function OrderSummaryScreen({ navigation, route }) {
   }, []);
 
   const handleAIPromptSubmit = async () => {
-    if (!aiPromptText.trim()) {
-      toast.warning("Please enter an order prompt");
-      return;
-    }
+    const textToSubmit = aiPromptTextRef.current;
+
+    if (!textToSubmit.trim())
+      return toast.warning("Please enter an order prompt");
 
     try {
       setAiLoading(true);
 
       const data = await AIOrderPrompt({
-        body: { text: aiPromptText },
+        body: { text: textToSubmit },
       }).unwrap();
 
       if (data.status === "ok" && data.orders?.length > 0) {
@@ -495,9 +448,16 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
         if (parsedOrder.unmatched_items?.length > 0) {
           const missingItems = parsedOrder.unmatched_items
-            .map((item) => item.product_name)
-            .join(", ");
-          toast.warning(`Items not found in catalog: ${missingItems}`);
+            .map((item) => {
+              const displayName =
+                item.product_name || item.raw_text?.trim() || "Unknown Item";
+              return `• ${displayName}`;
+            })
+            .join("\n");
+
+          // REPLACE Alert.alert with Custom Modal trigger
+          setUnmatchedItemsText(missingItems);
+          setUnmatchedModalVisible(true);
         }
 
         const linesToAdd = parsedOrder.order_lines.map((line) => ({
@@ -509,7 +469,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
           const { data: addData } = await orderLineAddMutation({
             variables: { id: order_id, input: linesToAdd },
           });
-
           const errors = addData?.orderLinesCreate?.errors || [];
           if (errors.length > 0) throw new Error(errors[0].message);
 
@@ -523,7 +482,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
         if (parsedCustomer?.phone) {
           toast.info("Auto-assigning customer...");
-
           const phoneQuery = parsedCustomer.phone.replace(/\s+/g, "");
 
           const { data: customerSearchData } = await searchCustomers({
@@ -534,7 +492,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
           if (foundCustomers.length > 0) {
             const selectedCustomer = foundCustomers[0].node;
-
             await updateOrderDraft({
               variables: { id: order_id, input: { user: selectedCustomer.id } },
             });
@@ -556,9 +513,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
                 const matchedAddress = customerAddresses.find((a) =>
                   a.streetAddress1?.toLowerCase().includes(hint),
                 );
-                if (matchedAddress) {
-                  addressToUse = matchedAddress;
-                }
+                if (matchedAddress) addressToUse = matchedAddress;
               }
 
               const payload = {
@@ -582,7 +537,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
               const { data: sData } = await getShippingMethods({
                 variables: { id: order_id },
               });
-
               const sMethodId = sData?.order?.shippingMethods?.[0]?.id;
               if (sMethodId) {
                 await updateShippingMethod({
@@ -605,18 +559,18 @@ export default function OrderSummaryScreen({ navigation, route }) {
           }
         }
 
-        setAiPromptText("");
+        aiPromptTextRef.current = "";
+        promptInputRef.current?.clear();
         setAiModalVisible(false);
       } else {
         toast.error("Failed to parse order from text.");
       }
     } catch (error) {
-      console.error("AI Prompt Error:", error);
-      const errorMessage =
+      toast.error(
         error?.data?.message ||
-        error.message ||
-        "Failed to process the AI prompt.";
-      toast.error(errorMessage);
+          error.message ||
+          "Failed to process the AI prompt.",
+      );
     } finally {
       setAiLoading(false);
     }
@@ -638,9 +592,273 @@ export default function OrderSummaryScreen({ navigation, route }) {
     }
   }, [initialData, searchData, searchQuery]);
 
-  const renderSlotModal = useCallback(
-    () => (
+  return (
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      edges={["bottom"]}
+    >
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          style={{ flex: 1, backgroundColor: theme.background }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {cancellationOrder ? (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                padding: 10,
+                gap: 8,
+              }}
+            >
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>
+                  {orderStatus || "Loading Status..."}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  (cancelLoading || isUIBusy) && { opacity: 0.5 },
+                ]}
+                onPress={() => setCancelModalVisible(true)}
+                disabled={cancelLoading || isUIBusy}
+              >
+                <Text style={styles.buttonText}>
+                  {cancelLoading || localLoading ? "Cancelling..." : "Cancel"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.actionButtonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  (isCancelling || isUIBusy) && { opacity: 0.5 },
+                ]}
+                onPress={() => setCancelModalVisible(true)}
+                disabled={isCancelling || isUIBusy}
+              >
+                <Text style={styles.buttonText}>
+                  {isCancelling ? "Cancelling..." : "Cancel Order"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, isUIBusy && { opacity: 0.5 }]}
+                onPress={toggleBottomSheet}
+                disabled={isUIBusy}
+              >
+                <Text style={styles.buttonText}>Add Product</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, isUIBusy && { opacity: 0.5 }]}
+                onPress={() => setAiModalVisible(true)}
+                disabled={isUIBusy}
+              >
+                <Text style={styles.buttonText}>AI Order Prompt</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.safeAreaView}>
+            {fetchMetaDataLoading ? (
+              <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+                {[...Array(2)].map((_, index) => (
+                  <View key={index} style={styles.shimmerCard}>
+                    <ShimmerPlaceholder
+                      height={30}
+                      width="60%"
+                      borderRadius={6}
+                    />
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={{ flex: 1 }}>
+                {error && <ErrorMessage errorMessage={error.message} />}
+                <OrderTable
+                  orderLines={orderLines}
+                  onDeleteProduct={deleteProduct}
+                  onUpdateQuantity={updateQuantity}
+                  onChangeVariant={changeVariant}
+                  isChangingVariant={isChangingVariant}
+                  isEditable={
+                    !cancellationOrder || orderStatus === "UNCONFIRMED"
+                  }
+                  tableConfig={!cancellationOrder}
+                />
+              </View>
+            )}
+
+            {!cancellationOrder && (
+              <View style={{ backgroundColor: theme.background }}>
+                <TouchableOpacity
+                  style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
+                  disabled={isUIBusy}
+                  onPress={() => {
+                    if (orderWithMetaData.length > 0) setCustomerVisible(true);
+                    else
+                      toast.warning(
+                        "Please add product before selecting a customer.",
+                      );
+                  }}
+                >
+                  <TextInput
+                    placeholder="Select Customer Address"
+                    placeholderTextColor={theme.secondary}
+                    style={styles.selectionText}
+                    editable={false}
+                    value={
+                      selectedCustomerData?.firstName &&
+                      selectedCustomerData?.lastName
+                        ? `${selectedCustomerData.firstName} ${selectedCustomerData.lastName}`
+                        : ""
+                    }
+                  />
+                  <Icon
+                    name="chevron-down-outline"
+                    size={20}
+                    color={theme.text}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
+                  disabled={isUIBusy}
+                  onPress={() => setShowPicker(true)}
+                >
+                  <TextInput
+                    placeholder="Select Order Date"
+                    placeholderTextColor={theme.secondary}
+                    style={styles.selectionText}
+                    editable={false}
+                    value={formattedDate}
+                  />
+                  <Icon
+                    name="chevron-down-outline"
+                    size={20}
+                    color={theme.text}
+                  />
+                </TouchableOpacity>
+
+                {showPicker && (
+                  <DateTimePicker
+                    mode="date"
+                    display="default"
+                    value={selectedDate}
+                    onChange={onChangeDate}
+                  />
+                )}
+
+                <TouchableOpacity
+                  style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
+                  disabled={isUIBusy}
+                  onPress={showModal}
+                >
+                  <TextInput
+                    placeholder="Available Slots"
+                    placeholderTextColor={theme.secondary}
+                    style={styles.selectionText}
+                    editable={false}
+                    value={selectedSlot}
+                  />
+                  <Icon
+                    name="chevron-down-outline"
+                    size={20}
+                    color={theme.text}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.confirmButton,
+                    (isFinalizing || isUIBusy) && { opacity: 0.6 },
+                  ]}
+                  onPress={() => setConfirmOrderModalVisible(true)}
+                  disabled={isFinalizing || isUIBusy}
+                >
+                  {isFinalizing || localLoading ? (
+                    <ActivityIndicator color={theme.background} />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>Confirm Order</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {showSuccess && (
+              <View style={styles.animationContainer}>
+                <LottieView
+                  ref={animationRef}
+                  source={require("../../../assets/animation/Success.json")}
+                  autoPlay
+                  loop={false}
+                  style={styles.animation}
+                />
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Customer Bottom Sheet */}
+      {customerVisible && (
+        <BottomSheet
+          addCustomer={true}
+          paddingBottom={20}
+          fontStyle="normal"
+          backgroundColor={theme.primary}
+          fontSize={22}
+          title="Customer list"
+          height={SCREEN_HEIGHT * 0.5}
+          setStatus={setCustomerVisible}
+          visible={customerVisible}
+          onClose={() => setCustomerVisible(false)}
+          onPress={() => {
+            setCustomerVisible(false);
+            navigation.navigate("createCustomer");
+          }}
+        >
+          <CustomerList
+            customerPersonalInfo={setSelectedCustomerData}
+            order_id={order_id}
+            CancelBottomSheet={CancelBottomSheet}
+          />
+        </BottomSheet>
+      )}
+
+      {/* Product List Bottom Sheet */}
+      {isVisible && (
+        <BottomSheet
+          paddingBottom={20}
+          fontStyle="normal"
+          fontSize={22}
+          title="Product list"
+          height={SCREEN_HEIGHT * 0.8}
+          backgroundColor={theme.primary}
+          setStatus={setIsVisible}
+          visible={isVisible}
+          onClose={() => setIsVisible(false)}
+        >
+          <BottomSheetProductListContent
+            loading={isLoading}
+            list={productList}
+            order_id={order_id}
+            receiveMetaData={setMetaDataHandle}
+            CancelBottomSheet={CancelBottomSheet}
+            onSearchChange={handleSearch}
+            currentSearch={searchQuery}
+          />
+        </BottomSheet>
+      )}
+
       <Portal>
+        {/* Available Slots Modal */}
         <Modal
           visible={visible}
           onDismiss={hideModal}
@@ -679,285 +897,8 @@ export default function OrderSummaryScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </Modal>
-      </Portal>
-    ),
-    [visible, orderSlots, selectedSlot, theme],
-  );
 
-  const renderActionButtons = useCallback(() => {
-    if (cancellationOrder) {
-      return (
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            padding: 10,
-            gap: 8,
-          }}
-        >
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>
-              {orderStatus || "Loading Status..."}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              (cancelLoading || isUIBusy) && { opacity: 0.5 },
-            ]}
-            onPress={() => setCancelModalVisible(true)}
-            disabled={cancelLoading || isUIBusy}
-          >
-            <Text style={styles.buttonText}>
-              {cancelLoading || localLoading ? "Cancelling..." : "Cancel"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return (
-      <View style={styles.actionButtonContainer}>
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            (isCancelling || isUIBusy) && { opacity: 0.5 },
-          ]}
-          onPress={() => setCancelModalVisible(true)}
-          disabled={isCancelling || isUIBusy}
-        >
-          <Text style={styles.buttonText}>
-            {isCancelling ? "Cancelling..." : "Cancel Order"}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, isUIBusy && { opacity: 0.5 }]}
-          onPress={toggleBottomSheet}
-          disabled={isUIBusy}
-        >
-          <Text style={styles.buttonText}>Add Product</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, isUIBusy && { opacity: 0.5 }]}
-          onPress={() => setAiModalVisible(true)}
-          disabled={isUIBusy}
-        >
-          <Text style={styles.buttonText}>AI Order Prompt</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }, [
-    cancellationOrder,
-    orderStatus,
-    isCancelling,
-    cancelLoading,
-    isUIBusy,
-    localLoading,
-    styles,
-    toggleBottomSheet,
-  ]);
-
-  const renderCustomerSelection = useCallback(
-    () => (
-      <TouchableOpacity
-        style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
-        disabled={isUIBusy}
-        onPress={() => {
-          if (orderWithMetaData.length > 0) {
-            setCustomerVisible(true);
-          } else {
-            toast.warning("Please add product before selecting a customer.");
-          }
-        }}
-      >
-        <TextInput
-          placeholder="Select Customer Address"
-          placeholderTextColor={theme.secondary}
-          style={styles.selectionText}
-          editable={false}
-          value={
-            selectedCustomerData?.firstName && selectedCustomerData?.lastName
-              ? `${selectedCustomerData.firstName} ${selectedCustomerData.lastName}`
-              : ""
-          }
-        />
-        <Icon name="chevron-down-outline" size={20} color={theme.text} />
-      </TouchableOpacity>
-    ),
-    [orderWithMetaData.length, selectedCustomerData, theme, isUIBusy, styles],
-  );
-
-  const renderDateSelection = useCallback(
-    () => (
-      <TouchableOpacity
-        style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
-        disabled={isUIBusy}
-        onPress={() => setShowPicker(true)}
-      >
-        <TextInput
-          placeholder="Select Order Date"
-          placeholderTextColor={theme.secondary}
-          style={styles.selectionText}
-          editable={false}
-          value={formattedDate}
-        />
-        <Icon name="chevron-down-outline" size={20} color={theme.text} />
-      </TouchableOpacity>
-    ),
-    [formattedDate, selectedDate, theme, isUIBusy, styles],
-  );
-
-  const renderSlotSelection = useCallback(
-    () => (
-      <TouchableOpacity
-        style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
-        disabled={isUIBusy}
-        onPress={showModal}
-      >
-        <TextInput
-          placeholder="Available Slots"
-          placeholderTextColor={theme.secondary}
-          style={styles.selectionText}
-          editable={false}
-          value={selectedSlot}
-        />
-        <Icon name="chevron-down-outline" size={20} color={theme.text} />
-      </TouchableOpacity>
-    ),
-    [selectedSlot, selectedDate, theme, showModal, isUIBusy, styles],
-  );
-
-  return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme.background }}
-      edges={["bottom"]}
-    >
-      <ScrollView
-        style={{ flex: 1, backgroundColor: theme.background }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {renderActionButtons()}
-        <View style={styles.safeAreaView}>
-          {fetchMetaDataLoading ? (
-            <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
-              {[...Array(2)].map((_, index) => (
-                <View key={index} style={styles.shimmerCard}>
-                  <ShimmerPlaceholder
-                    height={30}
-                    width="60%"
-                    borderRadius={6}
-                  />
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={{ flex: 1 }}>
-              {error && <ErrorMessage errorMessage={error.message} />}
-              <OrderTable
-                orderLines={orderLines}
-                onDeleteProduct={deleteProduct}
-                onUpdateQuantity={updateQuantity}
-                onChangeVariant={changeVariant}
-                isChangingVariant={isChangingVariant}
-                isEditable={!cancellationOrder || orderStatus === "UNCONFIRMED"}
-                tableConfig={!cancellationOrder}
-              />
-            </View>
-          )}
-
-          {!cancellationOrder && (
-            <View style={{ backgroundColor: theme.background }}>
-              {renderCustomerSelection()}
-              {renderDateSelection()}
-              {showPicker && (
-                <DateTimePicker
-                  mode="date"
-                  display="default"
-                  value={selectedDate}
-                  onChange={onChangeDate}
-                />
-              )}
-              {renderSlotSelection()}
-              <TouchableOpacity
-                style={[
-                  styles.confirmButton,
-                  (isFinalizing || isUIBusy) && { opacity: 0.6 },
-                ]}
-                onPress={() => setConfirmOrderModalVisible(true)}
-                disabled={isFinalizing || isUIBusy}
-              >
-                {isFinalizing || localLoading ? (
-                  <ActivityIndicator color={theme.background} />
-                ) : (
-                  <Text style={styles.confirmButtonText}>Confirm Order</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {renderSlotModal()}
-          {showSuccess && (
-            <View style={styles.animationContainer}>
-              <LottieView
-                ref={animationRef}
-                source={require("../../../assets/animation/Success.json")}
-                autoPlay
-                loop={false}
-                style={styles.animation}
-              />
-            </View>
-          )}
-        </View>
-      </ScrollView>
-      {customerVisible && (
-        <BottomSheet
-          addCustomer={true}
-          paddingBottom={20}
-          fontStyle="normal"
-          backgroundColor={theme.primary}
-          fontSize={22}
-          title="Customer list"
-          height={SCREEN_HEIGHT * 0.5}
-          setStatus={setCustomerVisible}
-          visible={customerVisible}
-          onClose={() => setCustomerVisible(false)}
-          onPress={() => {
-            setCustomerVisible(false);
-            navigation.navigate("createCustomer");
-          }}
-        >
-          <CustomerList
-            customerPersonalInfo={setSelectedCustomerData}
-            order_id={order_id}
-            CancelBottomSheet={CancelBottomSheet}
-          />
-        </BottomSheet>
-      )}
-      {isVisible && (
-        <BottomSheet
-          paddingBottom={20}
-          fontStyle="normal"
-          fontSize={22}
-          title="Product list"
-          height={SCREEN_HEIGHT * 0.8}
-          backgroundColor={theme.primary}
-          setStatus={setIsVisible}
-          visible={isVisible}
-          onClose={() => setIsVisible(false)}
-        >
-          <BottomSheetProductListContent
-            loading={isLoading}
-            list={productList}
-            order_id={order_id}
-            receiveMetaData={setMetaDataHandle}
-            CancelBottomSheet={CancelBottomSheet}
-            onSearchChange={handleSearch}
-            currentSearch={searchQuery}
-          />
-        </BottomSheet>
-      )}
-      <Portal>
+        {/* Cancel Confirmation Modal */}
         <Modal
           visible={cancelModalVisible}
           onDismiss={() => setCancelModalVisible(false)}
@@ -966,7 +907,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
           <Text style={{ fontSize: 16, marginBottom: 20, color: theme.text }}>
             Are you sure you want to cancel this order?
           </Text>
-
           <View
             style={{
               flexDirection: "row",
@@ -985,14 +925,9 @@ export default function OrderSummaryScreen({ navigation, route }) {
                 No
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity onPress={handleConfirmCancel}>
               <Text
-                style={{
-                  color: theme.error,
-                  fontWeight: "600",
-                  fontSize: 16,
-                }}
+                style={{ color: theme.error, fontWeight: "600", fontSize: 16 }}
               >
                 Yes, Cancel
               </Text>
@@ -1000,6 +935,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
           </View>
         </Modal>
 
+        {/* Place Order Confirmation Modal */}
         <Modal
           visible={confirmOrderModalVisible}
           onDismiss={() => setConfirmOrderModalVisible(false)}
@@ -1008,7 +944,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
           <Text style={{ fontSize: 16, marginBottom: 20, color: theme.text }}>
             Are you sure you want to confirm and place this order?
           </Text>
-
           <View
             style={{
               flexDirection: "row",
@@ -1029,7 +964,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
                 No
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               onPress={() => {
                 setConfirmOrderModalVisible(false);
@@ -1049,116 +983,183 @@ export default function OrderSummaryScreen({ navigation, route }) {
           </View>
         </Modal>
 
+        {/* CUSTOM UNMATCHED ITEMS MODAL */}
+        <Modal
+          visible={unmatchedModalVisible}
+          onDismiss={() => setUnmatchedModalVisible(false)}
+          contentContainerStyle={[styles.modalContainer, { maxHeight: "80%" }]}
+        >
+          <Text className="text-orange-500 font-bold text-xl ">
+            Warning: Items Not Found
+          </Text>
+
+          <Text style={{ fontSize: 15, marginBottom: 15, color: theme.text }}>
+            The AI could not find or process the following items in your
+            catalog. Please add them manually if needed:
+          </Text>
+
+          {/* ScrollView limits height for massive lists */}
+          <ScrollView
+            style={{ maxHeight: 200, marginBottom: 20, paddingHorizontal: 5 }}
+            showsVerticalScrollIndicator={true}
+          >
+            <Text
+              style={{ fontSize: 15, color: theme.secondary, lineHeight: 24 }}
+            >
+              {unmatchedItemsText}
+            </Text>
+          </ScrollView>
+
+          <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+            <TouchableOpacity
+              style={{ paddingHorizontal: 15, paddingVertical: 5 }}
+              onPress={() => setUnmatchedModalVisible(false)}
+            >
+              <Text
+                style={{
+                  color: theme.textSecondary || "#4ade80",
+                  fontWeight: "bold",
+                  fontSize: 16,
+                }}
+              >
+                OK
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        {/* AI Prompt Modal */}
         <Modal
           visible={aiModalVisible}
           dismissable={!aiLoading}
           onDismiss={() => {
             if (!aiLoading) {
               setAiModalVisible(false);
-              setAiPromptText("");
+              aiPromptTextRef.current = "";
+              promptInputRef.current?.clear();
             }
           }}
-          contentContainerStyle={styles.modalContainer}
+          contentContainerStyle={[styles.modalContainer, { maxHeight: "90%" }]}
         >
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "bold",
-              marginBottom: 15,
-              color: theme.text,
-            }}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flexShrink: 1 }}
           >
-            AI Order Prompt
-          </Text>
-
-          {isUIBusy ? (
-            <View
-              style={{
-                paddingVertical: 40,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 10 }}
             >
-              <ActivityIndicator
-                size="large"
-                color={theme.deliveryDate || "#4ade80"}
-              />
               <Text
                 style={{
-                  marginTop: 15,
-                  fontSize: 15,
+                  fontSize: 18,
+                  fontWeight: "bold",
+                  marginBottom: 15,
                   color: theme.text,
-                  textAlign: "center",
                 }}
               >
-                Processing AI Prompt...{"\n"}Mapping products & assigning
-                customer.
+                AI Order Prompt
               </Text>
-            </View>
-          ) : (
-            <>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: theme.secondary,
-                  borderRadius: 8,
-                  padding: 12,
-                  color: theme.text,
-                  minHeight: 120,
-                  textAlignVertical: "top",
-                  marginBottom: 20,
-                  backgroundColor: theme.background,
-                }}
-                multiline
-                placeholder="e.g., Bhendi - 500 gm&#10;Tomato - 1.5 kg..."
-                placeholderTextColor={theme.secondary}
-                value={aiPromptText}
-                onChangeText={setAiPromptText}
-                editable={!aiLoading}
-              />
 
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "flex-end",
-                  gap: 20,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => {
-                    setAiModalVisible(false);
-                    setAiPromptText("");
+              {isUIBusy ? (
+                <View
+                  style={{
+                    paddingVertical: 40,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
-                  disabled={aiLoading}
                 >
+                  <ActivityIndicator
+                    size="large"
+                    color={theme.deliveryDate || "#4ade80"}
+                  />
                   <Text
                     style={{
-                      color: theme.secondary,
-                      fontWeight: "600",
-                      fontSize: 16,
+                      marginTop: 15,
+                      fontSize: 15,
+                      color: theme.text,
+                      textAlign: "center",
                     }}
                   >
-                    Cancel
+                    Processing AI Prompt...{"\n"}Mapping products & assigning
+                    customer.
                   </Text>
-                </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <TextInput
+                    ref={promptInputRef}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: theme.secondary,
+                      borderRadius: 8,
+                      padding: 12,
+                      color: theme.text,
+                      minHeight: 120,
+                      maxHeight: 220,
+                      textAlignVertical: "top",
+                      marginBottom: 20,
+                      backgroundColor: theme.background,
+                    }}
+                    multiline
+                    scrollEnabled={true}
+                    placeholder="e.g., Bhendi - 500 gm&#10;Tomato - 1.5 kg..."
+                    placeholderTextColor={theme.secondary}
+                    defaultValue={aiPromptTextRef.current}
+                    onChangeText={(text) => {
+                      aiPromptTextRef.current = text;
+                    }}
+                    editable={!aiLoading}
+                    autoCorrect={false}
+                    spellCheck={false}
+                    autoCapitalize="none"
+                  />
 
-                <TouchableOpacity
-                  onPress={handleAIPromptSubmit}
-                  disabled={aiLoading}
-                >
-                  <Text
+                  <View
                     style={{
-                      color: theme.textSecondary || "#4ade80",
-                      fontWeight: "600",
-                      fontSize: 16,
+                      flexDirection: "row",
+                      justifyContent: "flex-end",
+                      gap: 20,
                     }}
                   >
-                    Submit
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+                    <TouchableOpacity
+                      onPress={() => {
+                        setAiModalVisible(false);
+                        aiPromptTextRef.current = "";
+                        promptInputRef.current?.clear();
+                      }}
+                      disabled={aiLoading}
+                    >
+                      <Text
+                        style={{
+                          color: theme.secondary,
+                          fontWeight: "600",
+                          fontSize: 16,
+                        }}
+                      >
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleAIPromptSubmit}
+                      disabled={aiLoading}
+                    >
+                      <Text
+                        style={{
+                          color: theme.textSecondary || "#4ade80",
+                          fontWeight: "600",
+                          fontSize: 16,
+                        }}
+                      >
+                        Submit
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
         </Modal>
       </Portal>
     </SafeAreaView>
