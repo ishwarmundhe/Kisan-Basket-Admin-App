@@ -102,6 +102,10 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const [unmatchedModalVisible, setUnmatchedModalVisible] = useState(false);
   const [unmatchedItemsText, setUnmatchedItemsText] = useState("");
 
+  // NEW STATES FOR SHIPPING METHOD
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState(null);
+  const [shippingModalVisible, setShippingModalVisible] = useState(false);
+
   const [AIOrderPrompt] = useAiOrderPromptMutation();
 
   // Date management
@@ -168,6 +172,16 @@ export default function OrderSummaryScreen({ navigation, route }) {
       })) || [],
     [orderWithMetaData],
   );
+
+  // Set default shipping method when data loads
+  useEffect(() => {
+    const availableMethods =
+      shippingMethodData?.channel?.availableShippingMethodsPerCountry?.[0]
+        ?.shippingMethods;
+    if (availableMethods?.length > 0 && !selectedShippingMethod) {
+      setSelectedShippingMethod(availableMethods[0]);
+    }
+  }, [shippingMethodData, selectedShippingMethod]);
 
   const updateQuantity = async (lineId, newQuantity) => {
     if (!lineId || newQuantity < 1 || isUIBusy) return;
@@ -315,13 +329,10 @@ export default function OrderSummaryScreen({ navigation, route }) {
   const ConfirmOrder = useCallback(async () => {
     if (isUIBusy) return;
     try {
-      const availableMethods =
-        shippingMethodData?.channel?.availableShippingMethodsPerCountry?.[0]
-          ?.shippingMethods;
-      const shippingMethodId = availableMethods?.[0]?.id ?? null;
+      const shippingMethodId = selectedShippingMethod?.id ?? null;
 
       if (!shippingMethodId) {
-        toast.error("No shipping methods available for this region.");
+        toast.error("Please select a shipping method first.");
         return;
       }
 
@@ -376,7 +387,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
     formattedDate,
     selectedSlot,
     order_id,
-    shippingMethodData,
+    selectedShippingMethod,
     updateShippingMethod,
     orderDraftFinalize,
     isUIBusy,
@@ -455,7 +466,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
             })
             .join("\n");
 
-          // REPLACE Alert.alert with Custom Modal trigger
           setUnmatchedItemsText(missingItems);
           setUnmatchedModalVisible(true);
         }
@@ -534,15 +544,12 @@ export default function OrderSummaryScreen({ navigation, route }) {
                 },
               });
 
-              const { data: sData } = await getShippingMethods({
-                variables: { id: order_id },
-              });
-              const sMethodId = sData?.order?.shippingMethods?.[0]?.id;
-              if (sMethodId) {
+              // Automatically set selected shipping method if one exists
+              if (selectedShippingMethod?.id) {
                 await updateShippingMethod({
                   variables: {
                     id: order_id,
-                    input: { shippingMethod: sMethodId },
+                    input: { shippingMethod: selectedShippingMethod.id },
                   },
                 });
               }
@@ -775,6 +782,25 @@ export default function OrderSummaryScreen({ navigation, route }) {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  style={[styles.selectionInput, isUIBusy && { opacity: 0.6 }]}
+                  disabled={isUIBusy}
+                  onPress={() => setShippingModalVisible(true)}
+                >
+                  <TextInput
+                    placeholder="Select Shipping Method"
+                    placeholderTextColor={theme.secondary}
+                    style={styles.selectionText}
+                    editable={false}
+                    value={selectedShippingMethod?.name || ""}
+                  />
+                  <Icon
+                    name="chevron-down-outline"
+                    size={20}
+                    color={theme.text}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={[
                     styles.confirmButton,
                     (isFinalizing || isUIBusy) && { opacity: 0.6 },
@@ -815,7 +841,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
           backgroundColor={theme.primary}
           fontSize={22}
           title="Customer list"
-          height={SCREEN_HEIGHT * 0.5}
+          height={SCREEN_HEIGHT * 0.85}
           setStatus={setCustomerVisible}
           visible={customerVisible}
           onClose={() => setCustomerVisible(false)}
@@ -894,6 +920,73 @@ export default function OrderSummaryScreen({ navigation, route }) {
               onPress={hideModal}
             >
               <Text style={styles.confirmButtonText}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        {/* Shipping Method Modal */}
+        <Modal
+          visible={shippingModalVisible}
+          onDismiss={() => setShippingModalVisible(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "bold",
+              marginBottom: 15,
+              color: theme.text,
+            }}
+          >
+            Select Shipping Method
+          </Text>
+
+          <ScrollView
+            style={{ maxHeight: 250 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {shippingMethodData?.channel?.availableShippingMethodsPerCountry?.[0]?.shippingMethods?.map(
+              (method, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => {
+                    setSelectedShippingMethod(method);
+                    setShippingModalVisible(false);
+                  }}
+                  style={styles.slotItem}
+                >
+                  <Text
+                    style={[
+                      styles.slotText,
+                      selectedShippingMethod?.id === method.id &&
+                        styles.selectedSlotText,
+                    ]}
+                  >
+                    {method.name}
+                  </Text>
+                </TouchableOpacity>
+              ),
+            ) || (
+              <Text
+                style={{
+                  color: theme.secondary,
+                  paddingVertical: 20,
+                  textAlign: "center",
+                }}
+              >
+                No shipping methods available for this region.
+              </Text>
+            )}
+          </ScrollView>
+
+          <View style={[styles.modalButtons, { marginTop: 15 }]}>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShippingModalVisible(false)}
+            >
+              <Text style={[styles.confirmButtonText, { color: theme.text }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
           </View>
         </Modal>
@@ -998,7 +1091,6 @@ export default function OrderSummaryScreen({ navigation, route }) {
             catalog. Please add them manually if needed:
           </Text>
 
-          {/* ScrollView limits height for massive lists */}
           <ScrollView
             style={{ maxHeight: 200, marginBottom: 20, paddingHorizontal: 5 }}
             showsVerticalScrollIndicator={true}
