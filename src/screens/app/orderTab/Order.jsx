@@ -263,6 +263,11 @@ const useStyle = (theme) =>
           borderColor: "#88E788",
           backgroundColor: "#ecfcec",
         },
+        orderPaidText:{
+          color:'#0000',
+          fontWeight: "600",
+
+        },
         btnText: {
           color: "#FFFFFF",
           fontWeight: "600",
@@ -608,7 +613,7 @@ const OrderItem = React.memo(
 
             {order?.status === "FULFILLED" && order?.isPaid && (
               <View style={[styles.actionBtn, styles.orderPaid]}>
-                <Text>Order Paid</Text>
+                <Text style={styles.orderPaidText}>Order Paid</Text>
               </View>
             )}
 
@@ -708,6 +713,7 @@ export default function ProductSelectionScreen({ navigation }) {
     fetchOrders,
     { data: orderList, loading, error: orderListError, refetch },
   ] = useLazyQuery(ORDER_LIST_QUERY);
+
 
   const { data: channelsData, loading: channelsLoading } =
     useQuery(GET_CHANNELS);

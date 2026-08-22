@@ -11,6 +11,12 @@ import Performance from "../screens/app/Performance";
 import LedgerAdminScreen from "../screens/admin/LedgerAdminScreen";
 import BottomTabs from "./BottomTabStack";
 
+// Newly Added Screens for Stack
+import SettingsScreen from "../screens/app/orderTab/SettingsScreen";
+import ProductListScreen from "../screens/app/productsTab/ProductList";
+import CustomerDetailScreen from "../screens/app/customerTab/CustomerScreen";
+import AllOrdersScreen from "../screens/app/orderTab/AllOrdersScreen";
+
 const RootStack = createNativeStackNavigator();
 
 const RootStackNavigator = () => {
@@ -24,16 +30,45 @@ const RootStackNavigator = () => {
         animation: "slide_from_right",
       }}
     >
-      {/* Bottom Tabs entry point */}
       <RootStack.Screen
         name="MainTabs"
         component={BottomTabs}
         options={{ headerShown: false }}
       />
 
-      {/* Screens outside tab bar */}
       <RootStack.Screen name="createOrder" component={CreateOrderScreen} />
-      <RootStack.Screen name="profile" component={ProfileScreen} />
+
+      <RootStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: "Settings" }}
+      />
+
+      <RootStack.Screen
+        name="profile"
+        component={ProfileScreen}
+        options={{ title: "Profile" }}
+      />
+
+      <RootStack.Screen
+        name="ProductList"
+        component={ProductListScreen}
+        options={{ title: "Manage Products" }}
+      />
+
+       <RootStack.Screen
+        name="customer"
+        component={CustomerDetailScreen}
+        options={{ title: "Customers" }}
+      />
+
+<RootStack.Screen
+name="allOrders"
+component={AllOrdersScreen}
+        options={{ title: "All Orders" }}
+
+/>
+
       <RootStack.Screen
         name="purchasePriceOrder"
         component={ProductPriceUpdateScreen}

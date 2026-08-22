@@ -7,7 +7,7 @@ import { useTheme } from "../constant/ThemeContext";
 // Screens
 import TodayOrderScreen from "../screens/app/orderTab/Order";
 import CustomerDetailScreen from "../screens/app/customerTab/CustomerScreen";
-import ProductListScreen from "../screens/app/productsTab/ProductList";
+import AllOrdersScreen from "../screens/app/orderTab/AllOrdersScreen"; // Replaces ProductListScreen
 import LedgerAdminScreen from "../screens/admin/LedgerAdminScreen";
 import DeliveryMainScreen from "../screens/app/deliveryTab/Deliverymainscreen";
 
@@ -40,8 +40,9 @@ const BottomTabs = () => {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Customer") {
             iconName = focused ? "people" : "people-outline";
-          } else if (route.name === "Product") {
-            iconName = focused ? "pricetags" : "pricetags-outline";
+          } else if (route.name === "AllOrders") {
+            // Updated icon for All Orders
+            iconName = focused ? "list" : "list-outline";
           } else if (route.name === "Ledger") {
             iconName = focused ? "wallet" : "wallet-outline";
           } else if (route.name === "Delivery") {
@@ -58,16 +59,22 @@ const BottomTabs = () => {
           title: "Orders",
           headerRight: () => (
             <TouchableOpacity
-              onPress={() => navigation.navigate("profile")}
+              onPress={() => navigation.navigate("Settings")}
               style={{ marginRight: 16 }}
             >
-              <Ionicons name="person-circle-outline" size={28} color="#fff" />
+              <Ionicons name="settings-outline" size={26} color="#fff" />
             </TouchableOpacity>
           ),
         })}
       />
       <Tab.Screen name="Customer" component={CustomerDetailScreen} />
-      <Tab.Screen name="Product" component={ProductListScreen} />
+
+      <Tab.Screen
+        name="AllOrders"
+        component={AllOrdersScreen}
+        options={{ title: "All Orders" }}
+      />
+
       <Tab.Screen
         name="Ledger"
         component={LedgerAdminScreen}
