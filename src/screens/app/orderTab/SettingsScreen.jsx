@@ -70,58 +70,122 @@ const SettingsScreen = ({ navigation }) => {
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={hideDialog} textColor={theme.secondary}>Cancel</Button>
-            <Button onPress={logOutHandler} textColor={theme.error || "#ef4444"}>Log Out</Button>
+            <Button onPress={hideDialog} textColor={theme.secondary}>
+              Cancel
+            </Button>
+            <Button
+              onPress={logOutHandler}
+              textColor={theme.error || "#ef4444"}
+            >
+              Log Out
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
       <ScreenLayout style={styles.container}>
-        <View style={{ borderRadius: 12, overflow: "hidden", marginHorizontal: 16, borderWidth: 1, borderColor: theme.border }}>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("profile")}>
+        <View
+          style={{
+            borderRadius: 12,
+            overflow: "hidden",
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: theme.border,
+          }}
+        >
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("profile")}
+          >
             <View style={styles.menuItemLeft}>
               <Ionicons name="person-outline" size={24} color={theme.text} />
               <Text style={styles.menuText}>Profile Settings</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.secondary} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.secondary}
+            />
           </TouchableOpacity>
           <Divider style={{ backgroundColor: theme.border }} />
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("ProductList")}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("ProductList")}
+          >
             <View style={styles.menuItemLeft}>
               <Ionicons name="pricetags-outline" size={24} color={theme.text} />
               <Text style={styles.menuText}>Manage Products</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.secondary} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.secondary}
+            />
           </TouchableOpacity>
           <Divider style={{ backgroundColor: theme.border }} />
 
-         <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("customer")}>
+          {/* NEW: Stock Management Menu Item */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("StockManagement")}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name="pricetags-outline" size={24} color={theme.text} />
+              <Ionicons name="cube-outline" size={24} color={theme.text} />
+              <Text style={styles.menuText}>Stock Management</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.secondary}
+            />
+          </TouchableOpacity>
+          <Divider style={{ backgroundColor: theme.border }} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("customer")}
+          >
+            <View style={styles.menuItemLeft}>
+              {/* Updated icon */}
+              <Ionicons name="people-outline" size={24} color={theme.text} />
               <Text style={styles.menuText}>Customer</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.secondary} />
-          </TouchableOpacity>
-          <Divider style={{ backgroundColor: theme.border }} />
- <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("allOrders")}>
-            <View style={styles.menuItemLeft}>
-              <Ionicons name="pricetags-outline" size={24} color={theme.text} />
-              <Text style={styles.menuText}>All Orders</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.secondary} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.secondary}
+            />
           </TouchableOpacity>
           <Divider style={{ backgroundColor: theme.border }} />
 
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("allOrders")}
+          >
+            <View style={styles.menuItemLeft}>
+              {/* Updated icon */}
+              <Ionicons name="list-outline" size={24} color={theme.text} />
+              <Text style={styles.menuText}>All Orders</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.secondary}
+            />
+          </TouchableOpacity>
+          <Divider style={{ backgroundColor: theme.border }} />
 
           <TouchableOpacity style={styles.menuItem} onPress={showDialog}>
             <View style={styles.menuItemLeft}>
-              <Ionicons name="log-out-outline" size={24} color={theme.logOutBackground || "#ef4444"} />
+              <Ionicons
+                name="log-out-outline"
+                size={24}
+                color={theme.logOutBackground || "#ef4444"}
+              />
               <Text style={[styles.menuText, styles.logoutText]}>Log Out</Text>
             </View>
           </TouchableOpacity>
-
         </View>
       </ScreenLayout>
     </PaperProvider>

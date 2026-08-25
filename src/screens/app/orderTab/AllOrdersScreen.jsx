@@ -567,10 +567,97 @@ export default function AllOrdersScreen({ navigation }) {
     if (globalRefresh) { const timer = setTimeout(() => { handleRefresh(); setGlobalRefresh(false); }, 100); return () => clearTimeout(timer); }
   }, [globalRefresh, handleRefresh, setGlobalRefresh]));
 
-  const handleConfirmOrder = async (id) => { /* omitted for brevity, same as before */ };
-  const handleMarkPaid = async (id) => { /* omitted for brevity, same as before */ };
+  const handleConfirmOrder = async (id) => {
+    if (!id) return;
+    setLoadingActionId(id);
+    try {
+      const { data } = await confirmOrder({ variables: { id } });
+
+      if (data?.orderConfirm?.errors?.length > 0) {
+        toast.error(data.orderConfirm.errors[0].message);
+      } else {
+        toast.success("Order Confirmed!");
+        await handleRefresh();
+      }
+    } catch (e) {
+      toast.error("Failed to confirm order");
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  const handleMarkPaid = async (id) => {
+    if (!id) return;
+    setLoadingActionId(id);
+    try {
+      const { data } = await markAsPaid({ variables: { id } });
+      const errors = data?.orderMarkAsPaid?.errors || [];
+      if (errors.length > 0) {
+        const error = errors[0];
+        if (error.field === "payment") {
+          toast.info("Payment Already Exists", {
+            description:
+              "This order has a payment record. You must Capture it instead of using 'Mark Paid'.",
+            duration: 4000,
+          });
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.success("Marked as Paid!");
+        await handleRefresh();
+      }
+    } catch (e) {
+      toast.error("Failed to mark as paid");
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
   const onFulfillClick = (id) => { setFulfillTargetOrderId(id); setShowWarehouseModal(true); };
-  const handleFulfillConfirm = async (warehouseId) => { /* omitted for brevity, same as before */ };
+
+  const handleFulfillConfirm = async (warehouseId) => {
+    setShowWarehouseModal(false);
+    if (!fulfillTargetOrderId) return;
+
+    setLoadingActionId(fulfillTargetOrderId);
+    try {
+      const { data: lineData } = await fetchFulfillData({
+        variables: { orderId: fulfillTargetOrderId },
+      });
+      const lines = lineData?.order?.lines || [];
+
+      const linesInput = lines
+        .filter((l) => l.quantityToFulfill > 0)
+        .map((l) => ({
+          orderLineId: l.id,
+          stocks: [{ quantity: l.quantityToFulfill, warehouse: warehouseId }],
+        }));
+
+      if (linesInput.length === 0) {
+        toast.message("Nothing to fulfill or Order already fulfilled");
+        return;
+      }
+
+      const { data } = await fulfillOrder({
+        variables: {
+          orderId: fulfillTargetOrderId,
+          input: { lines: linesInput },
+        },
+      });
+      if (data?.orderFulfill?.errors?.length > 0) {
+        toast.error(data.orderFulfill.errors[0].message);
+      } else {
+        toast.success("Order Fulfilled!");
+        await handleRefresh();
+      }
+    } catch (e) {
+      toast.error("Fulfillment failed");
+    } finally {
+      setLoadingActionId(null);
+      setFulfillTargetOrderId(null);
+    }
+  };
   const handleOrderDetails = useCallback((order_id) => { if (order_id) navigation.navigate("createOrder", { order_id, cancellationOrder: true }); }, [navigation]);
   const handleGenerateInvoice = useCallback(async (orderId, status) => { setSelectedOrderId(orderId); setInvoiceLoading(true); try { await generateAndShareInvoice(orderId, status); } finally { setInvoiceLoading(false); } }, []);
 

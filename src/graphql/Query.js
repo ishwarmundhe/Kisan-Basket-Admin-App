@@ -146,6 +146,32 @@ export const PRODUCT_LIST_QUERY = gql`
   }
 `;
 
+export const GET_PRODUCT_WITH_STOCKS = gql`
+  query GetProductWithStocks($id: ID!, $channel: String) {
+    product(id: $id, channel: $channel) {
+      id
+      name
+      media {
+        url
+      }
+      variants {
+        id
+        name
+        sku
+        stocks {
+          id
+          quantity
+          warehouse {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+
+
 export const ORDER_LIST_QUERY = gql`
   query OrderList(
     $first: Int

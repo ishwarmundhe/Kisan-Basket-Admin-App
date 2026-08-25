@@ -207,15 +207,16 @@ const ProductPriceUpdateScreen = () => {
   // }, [token]);
 
   useEffect(() => {
-    if (filteredData.length > 0) {
+    if (Array.isArray(filteredData) && filteredData.length > 0) {
       const initialPriceMap = {};
       const intialSellingPrice = {};
 
       filteredData.forEach((item) => {
+        if (!item || typeof item !== "object") return;
         const slotKey = Object.keys(item).find(
           (key) => key !== "delivery_date",
         );
-        const products = item[slotKey] || [];
+        const products = Array.isArray(item[slotKey]) ? item[slotKey] : [];
 
         products.forEach((product) => {
           initialPriceMap[product.id] =
@@ -346,8 +347,12 @@ const ProductPriceUpdateScreen = () => {
           dateStringEnd,
           token,
         );
-        setFilteredData(response);
+        // Backend can return null/undefined (e.g. 200 with empty body) when
+        // there is no data for the range - always fall back to an array so
+        // filteredData.length / .map never blow up below.
+        setFilteredData(Array.isArray(response) ? response : []);
       } catch (err) {
+        setFilteredData([]);
         if (err.response?.status === 400) {
           toast.error("No data found for the selected date");
         } else {
@@ -361,8 +366,9 @@ const ProductPriceUpdateScreen = () => {
       try {
         const dateString = formatDate(specificDate);
         const response = await SpecificDateData(dateString, token);
-        setFilteredData(response);
+        setFilteredData(Array.isArray(response) ? response : []);
       } catch (err) {
+        setFilteredData([]);
         if (err.response?.status === 404) {
           toast.error("No data found for the selected date");
         } else {
@@ -491,9 +497,10 @@ const ProductPriceUpdateScreen = () => {
 
   const renderDateSection = useCallback(
     (item) => {
+      if (!item || typeof item !== "object") return null;
       const deliveryDate = item?.delivery_date;
       const slotKey = Object.keys(item).find((key) => key !== "delivery_date");
-      const products = item[slotKey] || [];
+      const products = Array.isArray(item[slotKey]) ? item[slotKey] : [];
 
       return (
         <View key={deliveryDate} style={styles.dateSection}>

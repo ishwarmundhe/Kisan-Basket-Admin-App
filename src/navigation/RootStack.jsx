@@ -16,6 +16,8 @@ import SettingsScreen from "../screens/app/orderTab/SettingsScreen";
 import ProductListScreen from "../screens/app/productsTab/ProductList";
 import CustomerDetailScreen from "../screens/app/customerTab/CustomerScreen";
 import AllOrdersScreen from "../screens/app/orderTab/AllOrdersScreen";
+import StockManagementScreen from "../screens/app/orderTab/StockManagementScreen";
+import StockManagementDetailScreen from "../screens/app/orderTab/StockManagementDetailScreen";
 
 const RootStack = createNativeStackNavigator();
 
@@ -34,6 +36,17 @@ const RootStackNavigator = () => {
         name="MainTabs"
         component={BottomTabs}
         options={{ headerShown: false }}
+      />
+
+      <RootStack.Screen
+        name="StockManagement"
+        component={StockManagementScreen}
+        options={{ title: "Products" }}
+      />
+      <RootStack.Screen
+        name="StockManagementDetail"
+        component={StockManagementDetailScreen}
+        options={{ title: "Product Details" }}
       />
 
       <RootStack.Screen name="createOrder" component={CreateOrderScreen} />
@@ -56,18 +69,17 @@ const RootStackNavigator = () => {
         options={{ title: "Manage Products" }}
       />
 
-       <RootStack.Screen
+      <RootStack.Screen
         name="customer"
         component={CustomerDetailScreen}
         options={{ title: "Customers" }}
       />
 
-<RootStack.Screen
-name="allOrders"
-component={AllOrdersScreen}
+      <RootStack.Screen
+        name="allOrders"
+        component={AllOrdersScreen}
         options={{ title: "All Orders" }}
-
-/>
+      />
 
       <RootStack.Screen
         name="purchasePriceOrder"

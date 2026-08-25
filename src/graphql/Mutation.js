@@ -61,6 +61,33 @@ export const ORDER_LINE_ADD = gql`
   }
 `;
 
+
+export const UPDATE_VARIANT_STOCK = gql`
+  mutation ProductVariantStocksUpdate(
+    $variantId: ID!
+    $stocks: [StockInput!]!
+  ) {
+    productVariantStocksUpdate(variantId: $variantId, stocks: $stocks) {
+      errors {
+        field
+        message
+        code
+      }
+      productVariant {
+        id
+        stocks {
+          id
+          quantity
+          warehouse {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const ORDER_DRAFT_FINALIZE = gql`
   mutation OrderDraftFinalize($id: ID!, $date: Date, $slot: String) {
     draftOrderComplete(id: $id, date: $date, slot: $slot) {

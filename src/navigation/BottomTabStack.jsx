@@ -8,6 +8,7 @@ import { useTheme } from "../constant/ThemeContext";
 import TodayOrderScreen from "../screens/app/orderTab/Order";
 import CustomerDetailScreen from "../screens/app/customerTab/CustomerScreen";
 import AllOrdersScreen from "../screens/app/orderTab/AllOrdersScreen"; // Replaces ProductListScreen
+import PendingPaymentScreen from "../screens/app/orderTab/PendingPaymentScreen";
 import LedgerAdminScreen from "../screens/admin/LedgerAdminScreen";
 import DeliveryMainScreen from "../screens/app/deliveryTab/Deliverymainscreen";
 
@@ -43,6 +44,8 @@ const BottomTabs = () => {
           } else if (route.name === "AllOrders") {
             // Updated icon for All Orders
             iconName = focused ? "list" : "list-outline";
+          } else if (route.name === "PendingPayment") {
+            iconName = focused ? "cash" : "cash-outline";
           } else if (route.name === "Ledger") {
             iconName = focused ? "wallet" : "wallet-outline";
           } else if (route.name === "Delivery") {
@@ -67,12 +70,17 @@ const BottomTabs = () => {
           ),
         })}
       />
-      <Tab.Screen name="Customer" component={CustomerDetailScreen} />
 
       <Tab.Screen
         name="AllOrders"
         component={AllOrdersScreen}
         options={{ title: "All Orders" }}
+      />
+
+      <Tab.Screen
+        name="PendingPayment"
+        component={PendingPaymentScreen}
+        options={{ title: "Pending Payment" }}
       />
 
       <Tab.Screen

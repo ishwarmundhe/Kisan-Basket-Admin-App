@@ -695,7 +695,8 @@ export default function OrderSummaryScreen({ navigation, route }) {
                   onChangeVariant={changeVariant}
                   isChangingVariant={isChangingVariant}
                   isEditable={
-                    !cancellationOrder || orderStatus === "UNCONFIRMED"
+                    !cancellationOrder ||
+                    ["UNCONFIRMED", "UNFULFILLED"].includes(orderStatus)
                   }
                   tableConfig={!cancellationOrder}
                 />
