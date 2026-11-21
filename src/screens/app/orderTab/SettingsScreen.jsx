@@ -187,6 +187,17 @@ const SettingsScreen = ({ navigation }) => {
             </View>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("WhatsAppChat")}
+        >
+          <View style={styles.menuItemLeft}>
+            <Ionicons name="logo-whatsapp" size={24} color={theme.text} />
+            <Text style={styles.menuText}>WhatsApp Live Chat</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.secondary} />
+        </TouchableOpacity>
+        <Divider style={{ backgroundColor: theme.border }} />
       </ScreenLayout>
     </PaperProvider>
   );

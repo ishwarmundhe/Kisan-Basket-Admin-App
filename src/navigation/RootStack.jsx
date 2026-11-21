@@ -18,6 +18,8 @@ import CustomerDetailScreen from "../screens/app/customerTab/CustomerScreen";
 import AllOrdersScreen from "../screens/app/orderTab/AllOrdersScreen";
 import StockManagementScreen from "../screens/app/orderTab/StockManagementScreen";
 import StockManagementDetailScreen from "../screens/app/orderTab/StockManagementDetailScreen";
+import WhatsAppChatListScreen from "../screens/app/whatsappChat/WhatsAppChatListScreen";
+import WhatsAppChatThreadScreen from "../screens/app/whatsappChat/WhatsAppChatThreadScreen";
 
 const RootStack = createNativeStackNavigator();
 
@@ -102,6 +104,17 @@ const RootStackNavigator = () => {
           title: "Ledger Management",
         }}
       />
+      <RootStack.Screen
+        name="WhatsAppChat"
+        component={WhatsAppChatListScreen}
+        options={{ title: "WhatsApp Live Chat" }}
+      />
+      <RootStack.Screen
+        name="WhatsAppChatThread"
+        component={WhatsAppChatThreadScreen}
+        options={{ title: "Chat" }}
+      />
+
     </RootStack.Navigator>
   );
 };

@@ -1,14 +1,30 @@
-import { useContext, useMemo } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import AuthStack from "./AuthStack";
 import { AuthContext } from "../constant/AuthProvider";
 import RootStackNavigator from "./RootStack";
 import { useTheme } from "../constant/ThemeContext";
+import { navigationRef } from "./navigationRef";
+import { useChatNotificationWatcher } from "../hook/useChatNotificationWatcher";
+import { initFCM } from "../services/fcmService";
 
 export default function Navigation() {
   const { token, isLoading } = useContext(AuthContext);
   const { theme } = useTheme();
+
+  // 1. Initialize Firebase Cloud Messaging (FCM)
+  useEffect(() => {
+    if (token) {
+      const cleanupPromise = initFCM();
+      return () => {
+        cleanupPromise?.then?.((cleanup) => cleanup?.());
+      };
+    }
+  }, [token]);
+
+  // 2. Watch for incoming customer messages and trigger push notifications
+  useChatNotificationWatcher(Boolean(token));
 
   const MyTheme = useMemo(
     () => ({
@@ -36,7 +52,7 @@ export default function Navigation() {
   }
 
   return (
-    <NavigationContainer theme={MyTheme}>
+    <NavigationContainer ref={navigationRef} theme={MyTheme}>
       {token ? <RootStackNavigator /> : <AuthStack />}
     </NavigationContainer>
   );
