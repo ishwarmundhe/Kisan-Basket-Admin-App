@@ -22,6 +22,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../../constant/ThemeContext";
 
 import { GET_PRODUCT_VARIANTS } from "../../../../graphql/Query";
+import { isVariantAvailable } from "../../../../utils/Stock";
 
 const TABLE_COLUMNS = [
   { key: "sno", label: "S/No", width: 45, align: "center" },
@@ -47,9 +48,9 @@ const VariantPickerModal = ({
   const { theme } = useTheme();
   const [targetVariantId, setTargetVariantId] = useState(null);
 
-  const [fetchVariants, { data, loading }] = useLazyQuery(
+  const [fetchVariants, { data, loading, error }] = useLazyQuery(
     GET_PRODUCT_VARIANTS,
-    { fetchPolicy: "cache-and-network" },
+    { fetchPolicy: "network-only" },
   );
 
   // Reset target state when modal opens/closes
@@ -63,7 +64,12 @@ const VariantPickerModal = ({
     }
   }, [visible, productId]);
 
-  const variants = data?.product?.variants || [];
+  // show only in-stock variants (the line's current variant always stays visible)
+  const variants = (data?.product?.variants || []).filter(
+    (v) => v.id === currentVariantId || isVariantAvailable(v),
+  );
+  // Only show the big spinner when there is nothing to show yet
+  const showLoader = loading && variants.length === 0;
 
   return (
     <Modal
@@ -102,16 +108,25 @@ const VariantPickerModal = ({
           )}
 
           {/* Body */}
-          {loading ? (
+          {!productId ? (
+            <Text style={[styles.emptyText, { color: theme.secondary }]}>
+              Product details not found for this line.
+            </Text>
+          ) : showLoader ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator size="large" color={theme.textSecondary} />
               <Text style={[styles.loadingText, { color: theme.secondary }]}>
                 Loading variants…
               </Text>
             </View>
+          ) : error ? (
+            <Text style={[styles.emptyText, { color: theme.secondary }]}>
+              Failed to load variants. Please try again.
+            </Text>
           ) : (
             <ScrollView
               style={styles.variantList}
+              nestedScrollEnabled
               showsVerticalScrollIndicator={false}
             >
               {variants.map((v) => {
@@ -178,7 +193,7 @@ const VariantPickerModal = ({
 
               {!loading && variants.length === 0 && (
                 <Text style={[styles.emptyText, { color: theme.secondary }]}>
-                  No other variants available.
+                  No other in-stock variants available.
                 </Text>
               )}
             </ScrollView>
@@ -553,7 +568,9 @@ const styles = StyleSheet.create({
   },
   loadingText: { fontSize: 14 },
 
-  variantList: { flex: 1, marginTop: 4, marginBottom: 12 },
+  // NOTE: no flex:1 here - parent sheet has no fixed height, so flex:1
+  // collapsed the list to 0px and no variants were visible.
+  variantList: { flexGrow: 0, maxHeight: 360, marginTop: 4, marginBottom: 12 },
   variantRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -561,8 +578,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     paddingHorizontal: 4,
+    borderRadius: 10,
   },
-  variantLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  variantLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1,  },
   variantName: { fontSize: 15, flexShrink: 1 },
   variantPrice: { fontSize: 14, fontWeight: "600" },
   emptyText: { textAlign: "center", marginVertical: 20, fontSize: 14 },

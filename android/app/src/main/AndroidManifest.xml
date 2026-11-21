@@ -13,7 +13,8 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="true"
       android:requestLegacyExternalStorage="true"
-      android:supportsRtl="true">
+      android:supportsRtl="true"
+      android:screenOrientation="portrait">
 
 
       <activity

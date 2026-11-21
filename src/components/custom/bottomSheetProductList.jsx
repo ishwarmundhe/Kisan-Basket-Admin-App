@@ -23,6 +23,7 @@ import ScreenLayout from "../../screens/app/ScreenLayout";
 import { debounce } from "lodash";
 import { colors } from "../../constant/Colors";
 import { useTheme } from "../../constant/ThemeContext";
+import { filterAvailableProducts } from "../../utils/Stock";
 
 const useLocalStyle = (theme) => {
   return useMemo(() => {
@@ -197,6 +198,8 @@ const BottomSheetProductListContent = ({
   loading,
 }) => {
   const [selectedVariants, setSelectedVariants] = useState([]);
+  // hide out-of-stock / unpriced variants and products with none left
+  const availableList = useMemo(() => filterAvailableProducts(list), [list]);
   const [localSearch, setLocalSearch] = useState(currentSearch || "");
   const [isRecording, setIsRecording] = useState(false);
 
@@ -311,7 +314,7 @@ const BottomSheetProductListContent = ({
           </View>
         )}
 
-        {list?.length === 0 && (
+        {!loading && availableList.length === 0 && (
           <Text
             style={{
               textAlign: "center",
@@ -319,7 +322,7 @@ const BottomSheetProductListContent = ({
               color: theme.text,
             }}
           >
-            No products match your search.
+            No in-stock products found.
           </Text>
         )}
 
@@ -330,7 +333,7 @@ const BottomSheetProductListContent = ({
         )}
 
         <FlatList
-          data={list || []}
+          data={availableList}
           keyExtractor={(item) => item?.node?.id}
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"

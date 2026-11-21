@@ -124,6 +124,7 @@ export const PRODUCT_LIST_QUERY = gql`
             id
             name
             sku
+            quantityAvailable
             pricing {
               price {
                 gross {
@@ -295,6 +296,7 @@ export const GET_PRODUCT_VARIANTS = gql`
       variants {
         id
         name
+        quantityAvailable
         pricing {
           price {
             gross {

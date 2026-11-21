@@ -154,6 +154,11 @@ export default function OrderSummaryScreen({ navigation, route }) {
       onCompleted: (data) => setProductList(data?.products?.edges || []),
     });
 
+  // Order can be edited (change variant / qty / add / delete) ONLY until it is
+  // confirmed. New drafts are always editable; existing orders only while
+  // UNCONFIRMED. Once confirmed (UNFULFILLED, fulfilled, canceled...) it is locked.
+  const canEditOrder = !cancellationOrder || orderStatus === "UNCONFIRMED";
+
   const formattedDate = selectedDate?.toLocaleDateString("en-CA");
   const isLoading = searchLoading || isCancelling;
   const isUIBusy = localLoading || aiLoading || fetchMetaDataLoading;
@@ -184,6 +189,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
   }, [shippingMethodData, selectedShippingMethod]);
 
   const updateQuantity = async (lineId, newQuantity) => {
+    if (!canEditOrder) return toast.warning("Confirmed order can't be edited");
     if (!lineId || newQuantity < 1 || isUIBusy) return;
     try {
       setLocalLoading(true);
@@ -240,17 +246,12 @@ export default function OrderSummaryScreen({ navigation, route }) {
 
   const changeVariant = useCallback(
     async (lineId, newVariantId, quantity) => {
+      if (!canEditOrder) return toast.warning("Confirmed order can't be edited");
       if (!lineId || !newVariantId || isChangingVariant) return;
       try {
         setIsChangingVariant(true);
 
-        const deleteResponse = await deleteOrderProduct({
-          variables: { id: lineId },
-        });
-        const deleteErrors =
-          deleteResponse?.data?.orderLineDelete?.errors || [];
-        if (deleteErrors.length > 0) throw new Error(deleteErrors[0].message);
-
+        // 1) add the new variant first, so a failure never loses the old line
         const addResponse = await orderLineAddMutation({
           variables: {
             id: order_id,
@@ -260,10 +261,19 @@ export default function OrderSummaryScreen({ navigation, route }) {
         const addErrors = addResponse?.data?.orderLinesCreate?.errors || [];
         if (addErrors.length > 0) throw new Error(addErrors[0].message);
 
+        // 2) then remove the old variant line
+        const deleteResponse = await deleteOrderProduct({
+          variables: { id: lineId },
+        });
+        const deleteErrors =
+          deleteResponse?.data?.orderLineDelete?.errors || [];
+        if (deleteErrors.length > 0) throw new Error(deleteErrors[0].message);
+
         toast.success("Variant updated successfully");
         await fetchOrderData(true);
       } catch (err) {
         toast.error(err.message || "Failed to change variant");
+        await fetchOrderData(true);
       } finally {
         setIsChangingVariant(false);
       }
@@ -274,10 +284,12 @@ export default function OrderSummaryScreen({ navigation, route }) {
       orderLineAddMutation,
       fetchOrderData,
       isChangingVariant,
+      canEditOrder,
     ],
   );
 
   const deleteProduct = async (id) => {
+    if (!canEditOrder) return toast.warning("Confirmed order can't be edited");
     if (!id || isUIBusy) {
       toast.warning("Product ID not found");
       return;
@@ -430,10 +442,10 @@ export default function OrderSummaryScreen({ navigation, route }) {
     cancellationOrder ? cancelOrder() : cancelDraft(order_id);
   };
 
-  const toggleBottomSheet = useCallback(
-    () => setIsVisible((prev) => !prev),
-    [],
-  );
+  const toggleBottomSheet = useCallback(() => {
+    if (!canEditOrder) return toast.warning("Confirmed order can't be edited");
+    setIsVisible((prev) => !prev);
+  }, [canEditOrder]);
   const showModal = useCallback(() => setVisible(true), []);
   const hideModal = useCallback(() => setVisible(false), []);
   const CancelBottomSheet = useCallback(() => {
@@ -628,6 +640,20 @@ export default function OrderSummaryScreen({ navigation, route }) {
                   {orderStatus || "Loading Status..."}
                 </Text>
               </View>
+              {canEditOrder && (
+                <TouchableOpacity
+                  style={[styles.actionButton, isUIBusy && { opacity: 0.5 }]}
+                  onPress={toggleBottomSheet}
+                  disabled={isUIBusy || isChangingVariant}
+                >
+                  <Text style={styles.buttonText}>Add Product</Text>
+                </TouchableOpacity>
+              )}
+              {!canEditOrder && !!orderStatus && (
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>Editing locked</Text>
+                </View>
+              )}
               <TouchableOpacity
                 style={[
                   styles.actionButton,
@@ -694,10 +720,7 @@ export default function OrderSummaryScreen({ navigation, route }) {
                   onUpdateQuantity={updateQuantity}
                   onChangeVariant={changeVariant}
                   isChangingVariant={isChangingVariant}
-                  isEditable={
-                    !cancellationOrder ||
-                    ["UNCONFIRMED", "UNFULFILLED"].includes(orderStatus)
-                  }
+                  isEditable={canEditOrder}
                   tableConfig={!cancellationOrder}
                 />
               </View>
